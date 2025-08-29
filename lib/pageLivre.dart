@@ -38,6 +38,7 @@ class BookImagesPage extends StatefulWidget {
 
 class _BookImagesPageState extends State<BookImagesPage> {
   late Future<List<BookPageImage>> futureImages;
+  int currentIndex = 0;
 
   @override
   void initState() {
@@ -52,7 +53,6 @@ class _BookImagesPageState extends State<BookImagesPage> {
       headers: {'Content-Type': 'application/json'},
       body: json.encode({"livre_id": livreId}),
     );
-
     if (response.statusCode == 200) {
       final decoded = json.decode(response.body);
       final list = decoded["listPageByLivre"] as List<dynamic>;
@@ -60,6 +60,24 @@ class _BookImagesPageState extends State<BookImagesPage> {
     } else {
       throw Exception('Erreur récupération images');
     }
+  }
+
+  void nextImage(int maxIndex) {
+    setState(() {
+      if (currentIndex < maxIndex) currentIndex++;
+    });
+  }
+
+  void prevImage() {
+    setState(() {
+      if (currentIndex > 0) currentIndex--;
+    });
+  }
+
+  void jumpToImage(int index) {
+    setState(() {
+      currentIndex = index;
+    });
   }
 
   @override
@@ -71,7 +89,8 @@ class _BookImagesPageState extends State<BookImagesPage> {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
+          }
+          if (snapshot.hasError) {
             return Center(child: Text('Erreur : ${snapshot.error}'));
           }
           final images = snapshot.data ?? [];
@@ -79,56 +98,54 @@ class _BookImagesPageState extends State<BookImagesPage> {
             return const Center(
                 child: Text("Aucune image trouvée pour ce livre."));
           }
-          return GridView.builder(
-            padding: const EdgeInsets.all(8),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
-            ),
-            itemCount: images.length,
-            itemBuilder: (context, index) {
-              final page = images[index];
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => ImageZoomPage(
-                              imageUrl: page.urlImage,
-                              title: 'Page ${page.numPage}',
-                            ),
-                          ),
-                        );
-                      },
-                      child: Image.network(
-                        page.urlImage,
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return const Center(
-                              child: CircularProgressIndicator());
-                        },
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Center(
-                              child: Icon(Icons.broken_image, size: 40));
-                        },
-                      ),
+          final currentImage = images[currentIndex];
+
+          return Column(
+            children: [
+              Expanded(
+                child: PhotoView(
+                  imageProvider: NetworkImage(currentImage.urlImage),
+                  backgroundDecoration:
+                      const BoxDecoration(color: Colors.white),
+                  minScale: PhotoViewComputedScale.contained,
+                  maxScale: PhotoViewComputedScale.covered * 3,
+                ),
+              ),
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: currentIndex > 0 ? prevImage : null,
+                      icon: const Icon(Icons.arrow_back),
+                      label: const Text('Précédent'),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Page ${page.numPage}',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ],
-              );
-            },
+                    Text('Page ${currentIndex + 1} / ${images.length}'),
+                    ElevatedButton.icon(
+                      onPressed: currentIndex < images.length - 1
+                          ? () => nextImage(images.length - 1)
+                          : null,
+                      icon: const Icon(Icons.arrow_forward),
+                      label: const Text('Suivant'),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Slider(
+                  value: (currentIndex + 1).toDouble(),
+                  min: 1,
+                  max: images.length.toDouble(),
+                  divisions: images.length - 1,
+                  label: 'Page ${currentIndex + 1}',
+                  onChanged: (value) => jumpToImage(value.toInt() - 1),
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
           );
         },
       ),
