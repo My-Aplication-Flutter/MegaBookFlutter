@@ -7,9 +7,13 @@ version: 1.0.0+1
 environment:
   sdk: ^3.0.0
 
+
 dependencies:
   flutter:
     sdk: flutter
+  http: ^1.2.1  
+  photo_view: ^0.14.0
+    
 
 dev_dependencies:
   flutter_test:
