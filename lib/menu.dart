@@ -33,14 +33,24 @@ class SideMenu extends StatelessWidget {
             onTap: () => Navigator.pushNamed(context, '/'),
           ),
           ListTile(
-            leading: const Icon(Icons.person),
+            leading: const Icon(Icons.menu_book),
             title: const Text('Livres'),
             onTap: () => Navigator.pushNamed(context, '/Livres'),
           ),
           ListTile(
-            leading: const Icon(Icons.settings),
-            title: const Text('Paramètres'),
-            onTap: () => Navigator.pushNamed(context, '/settings'),
+            leading: const Icon(Icons.menu_book),
+            title: const Text('Magazines'),
+            onTap: () => Navigator.pushNamed(context, '/Magazines'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.favorite),
+            title: const Text('Favoris Livres'),
+            onTap: () => Navigator.pushNamed(context, '/FavorisLivres'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.favorite),
+            title: const Text('Favoris Magazines'),
+            onTap: () => Navigator.pushNamed(context, '/FavorisMagazines'),
           ),
         ],
       ),

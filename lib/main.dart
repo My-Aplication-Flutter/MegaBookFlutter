@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import 'MyHomePage.dart';
-import 'livres.dart';
+import 'Screens/MyHomePage.dart';
+import 'Screens/Livres.dart';
+import 'Screens/Magazines.dart';
+import 'Screens/FavoritesLivres.dart'; // importe ta page favoris
+import 'Screens/FavoritesMagazines.dart'; // importe ta page favoris
 
 void main() => runApp(const MyApp());
 
@@ -10,7 +13,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Hello World',
+      title: 'MegaBook',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
@@ -19,9 +22,12 @@ class MyApp extends StatelessWidget {
       // Voici un exemple correct avec initialRoute et routes :
       initialRoute: '/',
       routes: {
-        '/': (context) => const MyHomePage(title: 'Flutter Demo Home Page'),
+        '/': (context) => const MyHomePage(title: 'Accueil'),
         // Si tu ajoutes ProfilePage et SettingsPage, décommente et crée-les.
         '/Livres': (context) => const Livres(),
+        '/Magazines': (context) => const Magazines(),
+        '/FavorisLivres': (context) => const FavoritesLivresPage(),
+        '/FavorisMagazines': (context) => const FavoritesMagazinesPage(),
         // '/settings': (context) => const SettingsPage(),
       },
       // Si tu utilises 'home', inutile de mettre initialRoute et routes,
