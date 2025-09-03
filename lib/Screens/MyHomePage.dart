@@ -3,8 +3,8 @@ import 'package:carousel_slider/carousel_slider.dart' as cs;
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../menu.dart'; // Adapté à ton projet
-import 'pageLivre.dart';
-import 'CycleMagazinePage.dart';
+import './Livres/pageLivre.dart';
+import './Magazines/CycleMagazinePage.dart';
 
 class Livre {
   final String id, titre, cover, auteur, year, subtitle, keyTheme, date;

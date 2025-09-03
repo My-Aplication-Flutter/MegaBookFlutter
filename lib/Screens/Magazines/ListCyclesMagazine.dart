@@ -1,54 +1,112 @@
 import 'package:flutter/material.dart';
-import '../database_service.dart';
-import '../Models/livre.dart';
-import './Livres/pageLivre.dart';
-import '../menu.dart'; // Adapté à ton projet
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../../Models/CycleMagazineModel.dart';
+import 'CycleMagazinePage.dart';
+import '../../database_service.dart';
+import '../../menu.dart'; // Adapté à ton projet
 
-class FavoritesLivresPage extends StatefulWidget {
-  const FavoritesLivresPage({super.key});
+class CyclesByMagazinePage extends StatefulWidget {
+  final String magazineId;
+  final String titreMagazine;
+
+  const CyclesByMagazinePage(
+      {super.key, required this.magazineId, required this.titreMagazine});
 
   @override
-  State<FavoritesLivresPage> createState() => _FavoritesPageState();
+  State<CyclesByMagazinePage> createState() => _CyclesByMagazinePageState();
 }
 
-class _FavoritesPageState extends State<FavoritesLivresPage> {
-  final dbService = DatabaseService();
-  late Future<List<Book>> futureFavorites;
+class _CyclesByMagazinePageState extends State<CyclesByMagazinePage> {
+  late Future<List<CycleMagazine>> futureCyclesMagazine;
+  final DatabaseService dbService = DatabaseService();
+
+  // Ajouter un set pour garder en mémoire les favoris chargés depuis la BD
+  Set<String> favoriteIds = {};
 
   @override
   void initState() {
     super.initState();
-    futureFavorites = _loadFavorites();
+    futureCyclesMagazine = fetchCyclesMagazine(widget.magazineId);
+    // loadFavorites();
   }
 
-  Future<List<Book>> _loadFavorites() async {
-    final favMaps = await dbService.getFavoritesLivre();
-    return favMaps
-        .map((m) => Book(
-            id: m['id'],
-            titre: m['titre'],
-            auteur: m['auteur'],
-            cover: m['cover'],
-            year: m['year'],
-            subtitle: m['subtitle'],
-            nbrPages: m['nbrPages'],
-            keyTheme: ''))
-        .toList();
+  void loadFavorites() async {
+    final favs = await dbService.getFavoritesCycleMagazines();
+    setState(() {
+      favoriteIds = favs.map((e) => e['id'] as String).toSet();
+    });
   }
 
-  void _openBookDetail(Book book) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => BookImagesPage(
-          livreId: book.id,
-          titreLivre: book.titre,
+  void _toggleFavorite(CycleMagazine CycleMagazine) async {
+    final isFav = favoriteIds.contains(CycleMagazine.id);
+    if (isFav) {
+      await dbService.removeCycleMagazine(CycleMagazine.id);
+      setState(() {
+        favoriteIds.remove(CycleMagazine.id);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Livre retiré des favoris : ${CycleMagazine.titre}')));
+    } else {
+      /************************************************** */
+      // Appel modifié avec affichage du dialog
+      await dbService.addCycleMagazine(
+        id: CycleMagazine.id,
+        titre: CycleMagazine.titre,
+        periode: CycleMagazine.periode,
+        cover: CycleMagazine.cover,
+        type: CycleMagazine.type,
+        subtitle: CycleMagazine.subtitle,
+        nbrPages: CycleMagazine.nbrPages,
+        keyMagazine: CycleMagazine.keyMagazine,
+      );
+
+// Affiche une boîte de dialogue avec la valeur de insertedId
+      /* showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Insertion réussie'),
+          content: Text('ID inséré : $insertedId'),
+          actions: [
+            TextButton(
+              child: Text('Fermer'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
         ),
-      ),
-    );
+      );*/
+
+      /*********************************************** */
+
+      setState(() {
+        favoriteIds.add(CycleMagazine.id);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content:
+              Text('Magazine ajouté aux favoris : ${CycleMagazine.titre}')));
+    }
   }
 
-  void _showActionSheet(BuildContext context, Book book) {
+  Future<List<CycleMagazine>> fetchCyclesMagazine(String keyMagazine) async {
+    final response = await http.post(
+      Uri.parse(
+          'https://backend-mega-book-theta.vercel.app/api/listNumeroMagazine'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({"keyMagazine": keyMagazine}),
+    );
+
+    if (response.statusCode == 200) {
+      final decoded = json.decode(response.body);
+      final list = decoded["listNumerosMagazine"] as List<dynamic>;
+      return list.map((e) => CycleMagazine.fromJson(e)).toList();
+    } else {
+      throw Exception('Erreur de récupération des numeros des magazines');
+    }
+  }
+
+  void _showActionSheet(BuildContext context, CycleMagazine CycleMagazine) {
     showModalBottomSheet(
       context: context,
       builder: (BuildContext ctx) {
@@ -60,25 +118,26 @@ class _FavoritesPageState extends State<FavoritesLivresPage> {
                 title: const Text('Lire'),
                 onTap: () {
                   Navigator.pop(ctx);
-                  _openBookDetail(book);
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CycleMagazineImagesPage(
+                          cycleMagazineId: CycleMagazine.id,
+                          titreCycleMagazine: CycleMagazine.titre,
+                        ),
+                      ));
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.delete_outline),
-                title: const Text('Supprimer des favoris'),
-                onTap: () async {
+                leading: favoriteIds.contains(CycleMagazine.id)
+                    ? const Icon(Icons.favorite)
+                    : const Icon(Icons.favorite_border),
+                title: favoriteIds.contains(CycleMagazine.id)
+                    ? const Text('Retirer des favoris')
+                    : const Text('Ajouter au favoris'),
+                onTap: () {
                   Navigator.pop(ctx);
-                  // Supprimer des favoris
-                  await dbService.removeFavoriteLivre(book.id);
-                  setState(() {
-                    // Recharger la liste des favoris
-                    futureFavorites = _loadFavorites();
-                  });
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                        content:
-                            Text('Livre supprimé des favoris : ${book.titre}')),
-                  );
+                  _toggleFavorite(CycleMagazine);
                 },
               ),
               ListTile(
@@ -99,16 +158,16 @@ class _FavoritesPageState extends State<FavoritesLivresPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Favoris',
-          style: TextStyle(
+        title: Text(
+          widget.titreMagazine,
+          style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
         ),
         centerTitle: true,
-        elevation: 6,
         backgroundColor: Colors.deepPurple,
+        elevation: 6,
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
@@ -119,34 +178,31 @@ class _FavoritesPageState extends State<FavoritesLivresPage> {
           ),
         ),
       ),
-      drawer: const SideMenu(),
-      body: FutureBuilder<List<Book>>(
-        future: futureFavorites,
+      body: FutureBuilder<List<CycleMagazine>>(
+        future: futureCyclesMagazine,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
             return Center(child: Text('Erreur : ${snapshot.error}'));
           }
-
-          final favorites = snapshot.data ?? [];
-          if (favorites.isEmpty) {
+          if (snapshot.data == null || snapshot.data!.isEmpty) {
             return const Center(
-              child: Text(
-                'Aucun livre en favoris',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
-              ),
+              child: Text('Aucun livre trouvé pour ce thème.'),
             );
           }
 
+          final cyclesMagazine = snapshot.data!;
+
           return ListView.builder(
             padding: const EdgeInsets.all(12),
-            itemCount: favorites.length,
+            itemCount: cyclesMagazine.length,
             itemBuilder: (context, index) {
-              final book = favorites[index];
+              final cycle = cyclesMagazine[index];
+
               return InkWell(
                 borderRadius: BorderRadius.circular(16),
-                onTap: () => _showActionSheet(context, book),
+                onTap: () => _showActionSheet(context, cycle),
                 child: Card(
                   elevation: 5,
                   shadowColor: Colors.deepPurple.withOpacity(0.3),
@@ -156,25 +212,25 @@ class _FavoritesPageState extends State<FavoritesLivresPage> {
                   margin: const EdgeInsets.symmetric(vertical: 10),
                   child: Row(
                     children: [
-                      // Cover du livre (Hero pour transition fluide)
+                      // Cover avec Hero
                       Hero(
-                        tag: 'book_${book.id}',
+                        tag: 'cycle_${cycle.id}',
                         child: ClipRRect(
                           borderRadius: const BorderRadius.only(
                             topLeft: Radius.circular(16),
                             bottomLeft: Radius.circular(16),
                           ),
                           child: Image.network(
-                            book.cover,
+                            cycle.cover,
                             height: 120,
-                            width: 90,
+                            width: 120,
                             fit: BoxFit.cover,
                           ),
                         ),
                       ),
                       const SizedBox(width: 16),
 
-                      // Infos du livre
+                      // Texte à droite
                       Expanded(
                         child: Padding(
                           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -182,7 +238,7 @@ class _FavoritesPageState extends State<FavoritesLivresPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                book.titre,
+                                cycle.titre,
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
@@ -192,27 +248,15 @@ class _FavoritesPageState extends State<FavoritesLivresPage> {
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                "${book.auteur} • ${book.year}",
+                                cycle.periode,
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontStyle: FontStyle.italic,
-                                  color: Colors.grey.shade700,
+                                  color: Colors.grey.shade600,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              if (book.subtitle.isNotEmpty) ...[
-                                const SizedBox(height: 4),
-                                Text(
-                                  book.subtitle,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.grey.shade600,
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
                             ],
                           ),
                         ),
@@ -230,7 +274,7 @@ class _FavoritesPageState extends State<FavoritesLivresPage> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          '${book.nbrPages} pages',
+                          '${cycle.nbrPages} pages',
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,

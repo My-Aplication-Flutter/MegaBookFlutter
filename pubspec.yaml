@@ -17,6 +17,7 @@ dependencies:
   path_provider: ^2.1.0
   path: ^1.6.4
   carousel_slider: ^5.0.0
+  flutter_secure_storage: ^7.0.1
 
 flutter_icons:
   android: "launcher_icon"

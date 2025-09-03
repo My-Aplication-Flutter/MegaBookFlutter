@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'Screens/MyHomePage.dart';
-import 'Screens/Livres.dart';
-import 'Screens/Magazines.dart';
+import 'Screens/Livres/Livres.dart';
+import 'Screens/Magazines/Magazines.dart';
 import 'Screens/FavoritesLivres.dart'; // importe ta page favoris
 import 'Screens/FavoritesMagazines.dart'; // importe ta page favoris
+import 'Screens/LoginPage.dart'; // importe ta page login
 
 void main() => runApp(const MyApp());
 
@@ -22,8 +23,7 @@ class MyApp extends StatelessWidget {
       // Voici un exemple correct avec initialRoute et routes :
       initialRoute: '/',
       routes: {
-        '/': (context) => const MyHomePage(title: 'Accueil'),
-        // Si tu ajoutes ProfilePage et SettingsPage, décommente et crée-les.
+        '/': (context) => LoginPage(), // MyHomePage(title: 'Accueil')
         '/Livres': (context) => const Livres(),
         '/Magazines': (context) => const Magazines(),
         '/FavorisLivres': (context) => const FavoritesLivresPage(),
