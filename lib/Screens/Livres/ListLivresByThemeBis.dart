@@ -4,13 +4,10 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
-import 'package:permission_handler/permission_handler.dart';
-
 import '../../Models/livre.dart';
 import 'pageLivre.dart';
 import '../../database_service.dart';
 import '../../menu.dart'; // Adapté à ton projet
-import '../../Models/pageLivre.dart';
 
 class BooksByThemePage extends StatefulWidget {
   final String theme;
@@ -24,8 +21,6 @@ class BooksByThemePage extends StatefulWidget {
 class _BooksByThemePageState extends State<BooksByThemePage> {
   late Future<List<Book>> futureBooks;
   final DatabaseService dbService = DatabaseService();
-  late Future<List<BookPageImage>> futureImages;
-  double _downloadProgress = 0.0;
 
   // Ajouter un set pour garder en mémoire les favoris chargés depuis la BD
   Set<String> favoriteIds = {};
@@ -128,8 +123,7 @@ class _BooksByThemePageState extends State<BooksByThemePage> {
                 title: const Text('Télécharger pour lire hors-ligne'),
                 onTap: () {
                   Navigator.pop(ctx);
-                  futureImages = fetchBookImages(book.id);
-                  _downloadBook(book);
+                  // _downloadBook(book);
                 },
               ),
               ListTile(
@@ -146,160 +140,161 @@ class _BooksByThemePageState extends State<BooksByThemePage> {
     );
   }
 
-  void _showDownloadProgressDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (context) => AlertDialog(
-        title: Text("Téléchargement..."),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            LinearProgressIndicator(value: _downloadProgress),
-            SizedBox(height: 16),
-            Text(
-                "Progression: ${(_downloadProgress * 100).toStringAsFixed(0)}%"),
-          ],
-        ),
-      ),
-    );
+  /* 
+
+  Future<void> checkStoragePermission() async {
+  if (await Permission.storage.request().isGranted) {
+    print("Permission stockage accordée");
+  } else {
+    print("Permission stockage refusée");
   }
+}
 
-  void _showDownloadProgressNotification() {
-    final snackBar = SnackBar(
-      duration: const Duration(
-          minutes: 10), // durée longue pour ne pas disparaître trop vite
-      behavior: SnackBarBehavior.floating,
-      content: Row(
-        children: [
-          Expanded(
-            child: LinearProgressIndicator(
-              value: _downloadProgress,
-              minHeight: 6,
-              backgroundColor: Colors.grey[300],
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.deepPurple),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Text("${(_downloadProgress * 100).toStringAsFixed(0)}%"),
-        ],
-      ),
-    );
+  Future<void> _downloadBookImagesBis(Book book, Future<List<BookPageImage>> futureImages) async {
+  try {
+    setState(() {
+      _isDownloading = true;
+      _downloadProgress = 0;
+    });
 
-    ScaffoldMessenger.of(context)
-      ..removeCurrentSnackBar()
-      ..showSnackBar(snackBar);
-
-    if (_downloadProgress >= 1.0) {
-      // Quand téléchargement terminé, ferme le SnackBar
-      ScaffoldMessenger.of(context).removeCurrentSnackBar();
-      return;
+    final appDocDir = await getApplicationDocumentsDirectory();
+    final bookDir = Directory(p.join(appDocDir.path, 'megabook', book.titre));
+    if (!await bookDir.exists()) {
+      await bookDir.create(recursive: true);
     }
-  }
-
-  Future<void> _downloadBook(Book book) async {
-    bool _isDownloading = false;
 
     final images = await futureImages;
     int success = 0;
+    for (int i = 0; i < images.length; i++) {
+      final img = images[i];
+      final imageUrl = img.url;
+      final imageName = '${img.numPage}_${img.id_image}.jpg';
 
-    // Vérifie la permission de stockage avant de télécharger
-    var status = await Permission.storage.status;
-    if (!status.isGranted) {
-      status = await Permission.storage.request();
-      if (!status.isGranted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Permission de stockage refusée')));
-        return; // stoppe le téléchargement
+      final file = File(p.join(bookDir.path, imageName));
+      final response = await http.get(Uri.parse(imageUrl));
+      if (response.statusCode == 200) {
+        await file.writeAsBytes(response.bodyBytes);
+        success++;
       }
+      // Met à jour la progression
+      setState(() {
+        _downloadProgress = (i + 1) / images.length;
+      });
+      // Ajoute une pause d'1 seconde
+      await Future.delayed(const Duration(seconds: 1));
     }
 
+    await dbService.saveOfflineBookPages(book.id, bookDir.path, images.length);
+
+    if (mounted) {
+      Navigator.of(context).pop(); // ferme le dialog
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Pages téléchargées : $success/${images.length}'))
+      );
+    }
+
+  } catch (e) {
+    if (mounted) {
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur téléchargement images : $e'))
+      );
+    }
+  } finally {
+    setState(() {
+      _isDownloading = false;
+      _downloadProgress = 0;
+    });
+  }
+}
+
+  
+  // Télécharge toutes les images du livre (pages) pour un accès offline
+Future<void> _downloadBookImages(Book book, Future<List<BookPageImage>> futureImages) async {
+  try {
+    // Répertoire cible : megabook/nom_livre
+    final appDocDir = await getApplicationDocumentsDirectory();
+    final bookDir = Directory(p.join(appDocDir.path, 'megabook', book.titre));
+    if (!await bookDir.exists()) {
+      await bookDir.create(recursive: true);
+    }
+
+    // Récupérer la liste d'images
+    final images = await futureImages;
+
+    int success = 0;
+
+    for (final img in images) {
+      final imageUrl = img.url;
+      final imageName = '${img.numPage}_${img.id_image}.jpg'; // nommage perso
+
+      final file = File(p.join(bookDir.path, imageName));
+      final response = await http.get(Uri.parse(imageUrl));
+
+      if (response.statusCode == 200) {
+        await file.writeAsBytes(response.bodyBytes);
+        success++;
+      }
+      // Optionnel : gérer else ou progress
+    }
+
+    // Enregistre les infos dans ta base si nécessaire
+    await dbService.saveOfflineBookPages(book.id, bookDir.path, images.length);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Pages téléchargées : $success/${images.length}')),
+    );
+
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Erreur téléchargement images : $e')),
+    );
+  }
+}
+  
+  
+  
+  Future<void> _downloadBook(Book book) async {
     try {
-      setState(() {
-        _isDownloading = true;
-        _downloadProgress = 0;
-      });
+      // Remplace book.downloadUrl par la vraie propriété contenant l’URL du fichier à télécharger
+      final url = book.downloadUrl;
+      final response = await http.get(Uri.parse(url));
 
-      //final appDocDir = await getApplicationDocumentsDirectory();
-      // final bookDir = Directory(p.join(appDocDir.path, 'megabook', book.titre));
-      final appDocDir = await getExternalStorageDirectory();
-      if (appDocDir == null) {
-        // Gérer le cas où le dossier externe n'est pas accessible, par exemple :
-        throw Exception("Storage directory not accessible");
-      }
-      print('Chemin stockage externe : ${appDocDir.path}');
-      final bookDir = Directory(p.join(appDocDir.path, 'megabook', book.titre));
-      if (!await bookDir.exists()) {
-        await bookDir.create(recursive: true);
-      }
+      if (response.statusCode == 200) {
+        // Nom du fichier
+        final filename =
+            '${book.titre}_${book.id}.pdf'; // ajuste selon le format
 
-      /*************************************************** */
-      for (int i = 0; i < images.length; i++) {
-        final img = images[i];
-        final imageUrl = img.urlImage;
-        final imageName = '${img.numPage}_${img.id}.jpg';
+        // Dossier Documents local
+        final dir = await getApplicationDocumentsDirectory();
+        final file = File('${dir.path}/$filename');
+        await file.writeAsBytes(response.bodyBytes);
 
-        /* if (i == 0) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${imageUrl}')),
-          );
-        }*/
+        // Sauvegarde l'info du livre offline dans ta base (ajouter showSnackBar)
+        // await dbService.saveOfflineBook(book, file.path);
 
-        final file = File(p.join(bookDir.path, imageName));
-        final response = await http.get(Uri.parse(imageUrl));
-        if (response.statusCode == 200) {
-          await file.writeAsBytes(response.bodyBytes);
-          success++;
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Echec telechargement image')));
-        }
-
-        // Met à jour la progression
-        setState(() {
-          _downloadProgress = (i + 1) / images.length;
-          _showDownloadProgressNotification();
-        });
-        // Ajoute une pause d'1 seconde
-        await Future.delayed(const Duration(seconds: 1));
-      }
-
-      //  await dbService.saveOfflineBookPages(book.id, bookDir.path, images.length);
-
-      if (mounted) {
-        Navigator.of(context).pop(); // ferme le dialog
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Pages téléchargées : $success/${images.length}')));
+            content: Text('Livre téléchargé avec succès : ${book.titre}')));
+      } else {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Échec du téléchargement')));
       }
     } catch (e) {
-      if (mounted) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Erreur téléchargement images : $e')));
-      }
-    } finally {
-      setState(() {
-        _isDownloading = false;
-        _downloadProgress = 0;
-      });
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Erreur: $e')));
     }
   }
-
-  Future<List<BookPageImage>> fetchBookImages(String livreId) async {
-    final response = await http.post(
-      Uri.parse(
-          'https://backend-mega-book-theta.vercel.app/api/listPagesByLivre'),
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({"livre_id": livreId}),
-    );
-    if (response.statusCode == 200) {
-      final decoded = json.decode(response.body);
-      final list = decoded["listPageByLivre"] as List<dynamic>;
-      return list.map((e) => BookPageImage.fromJson(e)).toList();
-    } else {
-      throw Exception('Erreur récupération images');
-    }
-  }
+  
+  Future<void> saveOfflineBook(Book book, String localPath) async {
+  // Ajoute ou met à jour les infos du livre offline dans SQLite
+  await insertOfflineBook({
+    'id': book.id,
+    'titre': book.titre,
+    'path': localPath,
+    // ...autres champs utiles
+  });
+}
+*/
 
   @override
   Widget build(BuildContext context) {

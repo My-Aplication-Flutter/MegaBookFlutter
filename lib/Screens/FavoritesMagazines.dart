@@ -150,7 +150,7 @@ class _FavoritesPageState extends State<FavoritesMagazinesPage> {
           if (favorites.isEmpty) {
             return const Center(
               child: Text(
-                'Aucun magazine en favoris',
+                'Aucune magazine en favoris',
                 style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
             );
