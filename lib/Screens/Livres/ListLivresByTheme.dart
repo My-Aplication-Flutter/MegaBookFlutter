@@ -146,6 +146,23 @@ class _BooksByThemePageState extends State<BooksByThemePage> {
     );
   }
 
+  Future<void> requestStoragePermission() async {
+    var status = await Permission.storage.status;
+    if (!status.isGranted) {
+      status = await Permission.storage.request();
+      if (status.isGranted) {
+        // Autorisation accordée
+        print("Accès au stockage autorisé");
+      } else {
+        // Autorisation refusée
+        print("Accès au stockage refusé");
+      }
+    } else {
+      // Déjà accordée
+      print("Accès au stockage déjà accordé");
+    }
+  }
+
   void _showDownloadProgressDialog() {
     showDialog(
       context: context,
