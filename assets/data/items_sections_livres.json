@@ -1,0 +1,153 @@
+{
+    "data": [
+        {
+            "keySection": "magazines",
+            "value": "MAGAZINES",
+            "listThemes": [
+                {
+                    "keyTheme": "Informatique",
+                    "valueTheme": "Informatique",
+                    "keySection": "magazines"
+                },
+                {
+                    "keyTheme": "Science",
+                    "valueTheme": "Science",
+                    "keySection": "magazines"
+                },
+                {
+                    "keyTheme": "Actualité",
+                    "valueTheme": "Actualité",
+                    "keySection": "magazines"
+                },
+                {
+                    "keyTheme": "Économie",
+                    "valueTheme": "Économie",
+                    "keySection": "magazines"
+                },
+                {
+                    "keyTheme": "Finance",
+                    "valueTheme": "Finance",
+                    "keySection": "magazines"
+                },
+                {
+                    "keyTheme": "Business",
+                    "valueTheme": "Business",
+                    "keySection": "magazines"
+                },
+                {
+                    "keyTheme": "Psychologie",
+                    "valueTheme": "Psychologie",
+                    "keySection": "magazines"
+                },
+                {
+                    "keyTheme": "Sante",
+                    "valueTheme": "Santé",
+                    "keySection": "magazines"
+                },
+                {
+                    "keyTheme": "Nature et découverte",
+                    "valueTheme": "Nature et découverte",
+                    "keySection": "magazines"
+                }
+            ],
+            "expandedHelp": false
+        },
+        {
+            "keySection": "livres",
+            "value": "LIVRES",
+            "listThemes": [
+                {
+                    "keyTheme": "Informatique",
+                    "valueTheme": "Informatique",
+                    "keySection": "livres"
+                },
+                {
+                    "keyTheme": "Science",
+                    "valueTheme": "Science",
+                    "keySection": "livres"
+                },
+                {
+                    "keyTheme": "Crypto-monnaie/Blockchain",
+                    "valueTheme": "Crypto-monnaie/Blockchain",
+                    "keySection": "livres"
+                },
+                {
+                    "keyTheme": "Societe",
+                    "valueTheme": "Societe",
+                    "keySection": "livres"
+                },
+                {
+                    "keyTheme": "Affaires et économie",
+                    "valueTheme": "Affaires et économie",
+                    "keySection": "livres"
+                },
+                {
+                    "keyTheme": "Finances personnelles",
+                    "valueTheme": "Finances personnelles",
+                    "keySection": "livres"
+                },
+                {
+                    "keyTheme": "Études et enseignement en éducation",
+                    "valueTheme": "Études et enseignement en éducation",
+                    "keySection": "livres"
+                },
+                {
+                    "keyTheme": "Biographie et autobiographie - Affaires et finances",
+                    "valueTheme": "Biographie et autobiographie - Affaires et finances",
+                    "keySection": "livres"
+                },
+                {
+                    "keyTheme": "Jeux et Loisirs",
+                    "valueTheme": "Jeux et Loisirs",
+                    "keySection": "livres"
+                },
+                {
+                    "keyTheme": "Citations et Pensées",
+                    "valueTheme": "Citations et Pensées",
+                    "keySection": "livres"
+                },
+                {
+                    "keyTheme": "Développement personnel",
+                    "valueTheme": "Développement personnel",
+                    "keySection": "livres"
+                },
+                {
+                    "keyTheme": "Mathématiques - Puzzle",
+                    "valueTheme": "Mathématiques - Puzzle",
+                    "keySection": "livres"
+                },
+                {
+                    "keyTheme": "Mathématiques - Finance",
+                    "valueTheme": "Mathématiques - Finance",
+                    "keySection": "livres"
+                },
+                {
+                    "keyTheme": "Bourse - Trading",
+                    "valueTheme": "Bourse - Trading",
+                    "keySection": "livres"
+                },
+                {
+                    "keyTheme": "Pédagogie",
+                    "valueTheme": "Pédagogie",
+                    "keySection": "livres"
+                },
+                {
+                    "keyTheme": "Tests psychotechniques",
+                    "valueTheme": "Tests psychotechniques",
+                    "keySection": "livres"
+                },
+                {
+                    "keyTheme": "Intelligence artificielle (IA)",
+                    "valueTheme": "Intelligence artificielle (IA)",
+                    "keySection": "livres"
+                },
+                {
+                    "keyTheme": "إسلاميات",
+                    "valueTheme": "إسلاميات",
+                    "keySection": "livres"
+                }
+            ],
+            "expandedHelp": false
+        }
+    ]
+}

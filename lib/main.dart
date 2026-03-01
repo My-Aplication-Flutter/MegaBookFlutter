@@ -4,7 +4,7 @@ import 'Screens/Livres/Livres.dart';
 import 'Screens/Magazines/Magazines.dart';
 import 'Screens/FavoritesLivres.dart'; // importe ta page favoris
 import 'Screens/FavoritesMagazines.dart'; // importe ta page favoris
-import 'Screens/LoginPage.dart'; // importe ta page login
+import 'Screens/MyHomePage.dart';
 
 void main() => runApp(const MyApp());
 
@@ -23,7 +23,8 @@ class MyApp extends StatelessWidget {
       // Voici un exemple correct avec initialRoute et routes :
       initialRoute: '/',
       routes: {
-        '/': (context) => LoginPage(), // MyHomePage(title: 'Accueil')
+        '/': (context) =>
+            const MyHomePage(title: 'Accueil'), // MyHomePage(title: 'Accueil')
         '/Livres': (context) => const Livres(),
         '/Magazines': (context) => const Magazines(),
         '/FavorisLivres': (context) => const FavoritesLivresPage(),
