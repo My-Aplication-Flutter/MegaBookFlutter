@@ -1,0 +1,363 @@
+{
+    "listLivres": [
+        {
+            "date": "2025-12-29T12:06:25.755Z",
+            "activation": 1,
+            "langue": "Arabe",
+            "listSommaires": [],
+            "_id": "69526ec36d41763d7c2cf4db",
+            "titre": "السيرة النبوية لابن هشام مجلد 4",
+            "token": "1c8bb07f-7f4a-4ac6-9c51-2c1607d76f90",
+            "cover": "https://i.gyazo.com/f3fe13d88966e497661a0ad014b7d7e1.png",
+            "auteur": "لابن هشام",
+            "year": "2025",
+            "keyTheme": "إسلاميات",
+            "nbr_pages": 374
+        },
+        {
+            "date": "2026-02-20T19:06:26.665Z",
+            "activation": 1,
+            "langue": "Arabe",
+            "listSommaires": [],
+            "_id": "6998b0bcb6ca1833205f5383",
+            "titre": "خواطري حول القرآن الكريم تفسير الشعراوي - الجزء 7",
+            "token": "33d87920-8ae9-4328-8af6-426593c54283",
+            "cover": "https://i.gyazo.com/6ae675c187deadd7c4875541faa4d9af.png",
+            "auteur": "محمد متولي الشعراوي",
+            "year": "2025",
+            "keyTheme": "إسلاميات",
+            "nbr_pages": 642
+        },
+        {
+            "date": "2026-02-19T17:47:05.974Z",
+            "activation": 1,
+            "langue": "Arabe",
+            "listSommaires": [],
+            "_id": "69974c9ce2eb80692c268365",
+            "titre": "خواطري حول القرآن الكريم تفسير الشعراوي - الجزء 6",
+            "token": "b622baa7-9d72-41ea-bb6d-054beece5f10",
+            "cover": "https://i.gyazo.com/6ae675c187deadd7c4875541faa4d9af.png",
+            "auteur": "محمد متولي الشعراوي",
+            "year": "2025",
+            "keyTheme": "إسلاميات",
+            "nbr_pages": 642
+        },
+        {
+            "date": "2026-02-07T08:03:04.686Z",
+            "activation": 1,
+            "langue": "Arabe",
+            "listSommaires": [],
+            "_id": "6986f1c8b30fe364143978b1",
+            "titre": "خواطري حول القرآن الكريم تفسير الشعراوي - الجزء 5",
+            "token": "37cab7ef-d9dc-406a-98cd-c9e3631713af",
+            "cover": "https://i.gyazo.com/6ae675c187deadd7c4875541faa4d9af.png",
+            "auteur": "محمد متولي الشعراوي",
+            "year": "2025",
+            "keyTheme": "إسلاميات",
+            "nbr_pages": 643
+        },
+        {
+            "date": "2026-02-05T07:28:39.555Z",
+            "activation": 1,
+            "langue": "Arabe",
+            "listSommaires": [],
+            "_id": "698446b1b3601a5ff4072ecc",
+            "titre": "خواطري حول القرآن الكريم تفسير الشعراوي - الجزء 4",
+            "token": "26e26c67-bf2d-42d4-8316-19c57cbaa2f0",
+            "cover": "https://i.gyazo.com/6ae675c187deadd7c4875541faa4d9af.png",
+            "auteur": "محمد متولي الشعراوي",
+            "year": "2025",
+            "keyTheme": "إسلاميات",
+            "nbr_pages": 641
+        },
+        {
+            "date": "2026-02-03T12:04:30.073Z",
+            "activation": 1,
+            "langue": "Arabe",
+            "listSommaires": [],
+            "_id": "6981e4623268664080f9bbb0",
+            "titre": "خواطري حول القرآن الكريم تفسير الشعراوي - الجزء 3",
+            "token": "fead93ff-304e-4d8a-adde-d3f073e8a62f",
+            "cover": "https://i.gyazo.com/6ae675c187deadd7c4875541faa4d9af.png",
+            "auteur": "محمد متولي الشعراوي",
+            "year": "2025",
+            "keyTheme": "إسلاميات",
+            "nbr_pages": 644
+        },
+        {
+            "date": "2026-02-02T12:04:18.667Z",
+            "activation": 1,
+            "langue": "Arabe",
+            "listSommaires": [],
+            "_id": "698092cf6ba49f05ac34f239",
+            "titre": "خواطري حول القرآن الكريم تفسير الشعراوي - الجزء 2",
+            "token": "f4b05c12-9b2a-4a5c-a5cc-87d65274a4f3",
+            "cover": "https://i.gyazo.com/6ae675c187deadd7c4875541faa4d9af.png",
+            "auteur": "محمد متولي الشعراوي",
+            "year": "2025",
+            "keyTheme": "إسلاميات",
+            "nbr_pages": 644
+        },
+        {
+            "date": "2026-02-01T14:20:05.771Z",
+            "activation": 1,
+            "langue": "Arabe",
+            "listSommaires": [],
+            "_id": "697f6117666b7450bc7ee47c",
+            "titre": "خواطري حول القرآن الكريم تفسير الشعراوي - الجزء 1",
+            "token": "edd81eda-5ce5-44ed-b8eb-f6753e918ec5",
+            "cover": "https://i.gyazo.com/6ae675c187deadd7c4875541faa4d9af.png",
+            "auteur": "محمد متولي الشعراوي",
+            "year": "2025",
+            "keyTheme": "إسلاميات",
+            "nbr_pages": 657
+        },
+        {
+            "date": "2026-01-01T09:22:44.348Z",
+            "activation": 1,
+            "langue": "Arabe",
+            "listSommaires": [],
+            "_id": "69563cef5dccfe583c01979a",
+            "titre": "الدعاء من الكتاب والسنة",
+            "token": "5b52a68e-115c-4927-9775-b1cd9d8bb8df",
+            "cover": "https://i.gyazo.com/05bebcb1132add25c448b3818e7ae772.png",
+            "auteur": "محمد الصالح بن عمار منان",
+            "year": "2025",
+            "keyTheme": "إسلاميات",
+            "nbr_pages": 152
+        },
+        {
+            "date": "2025-12-18T11:09:57.218Z",
+            "activation": 1,
+            "langue": "Arabe",
+            "listSommaires": [],
+            "_id": "6943e1237a261632bcce20f6",
+            "titre": "شرح الشفا للقاضي عياض الجزء الاول",
+            "token": "60f7ad7d-872e-4b62-943d-eb8ae78246b2",
+            "cover": "https://i.gyazo.com/497b59ef1683cc9b9d05495bf5e4de2e.png",
+            "auteur": "القاضي عياض",
+            "year": "2025",
+            "keyTheme": "إسلاميات",
+            "nbr_pages": 768
+        },
+        {
+            "date": "2025-12-28T21:12:56.319Z",
+            "activation": 1,
+            "langue": "Arabe",
+            "listSommaires": [],
+            "_id": "69519d5aa2715761842aff0a",
+            "titre": "السيرة النبوية لابن هشام مجلد 3",
+            "token": "84f3bceb-5b22-4c77-b203-3c1166027e16",
+            "cover": "https://i.gyazo.com/d7c191caa84c64ce958716dbb65109ed.png",
+            "auteur": "لابن هشام",
+            "year": "2025",
+            "keyTheme": "إسلاميات",
+            "nbr_pages": 360
+        },
+        {
+            "date": "2025-12-28T07:48:40.993Z",
+            "activation": 1,
+            "langue": "Arabe",
+            "listSommaires": [],
+            "_id": "6950e0da29636a18b8ebfb0e",
+            "titre": "السيرة النبوية لابن هشام مجلد 2",
+            "token": "2ad67365-09e7-494f-91e4-300a49320502",
+            "cover": "https://i.gyazo.com/da741674412246f364f804abdbd8a16f.png",
+            "auteur": "لابن هشام",
+            "year": "2025",
+            "keyTheme": "إسلاميات",
+            "nbr_pages": 448
+        },
+        {
+            "date": "2025-12-27T15:51:30.367Z",
+            "activation": 1,
+            "langue": "Arabe",
+            "listSommaires": [],
+            "_id": "6950008c7918965dbc45f164",
+            "titre": "السيرة النبوية لابن هشام مجلد 1",
+            "token": "13019ce7-094b-4222-b040-f0f31e7c0c0f",
+            "cover": "https://i.gyazo.com/7e32e93e2cc769b593a9107a24c1140d.png",
+            "auteur": "لابن هشام",
+            "year": "2025",
+            "keyTheme": "إسلاميات",
+            "nbr_pages": 440
+        },
+        {
+            "date": "2025-12-26T20:01:57.869Z",
+            "activation": 1,
+            "langue": "Arabe",
+            "listSommaires": [],
+            "_id": "694ee9b9df3c6f3510665b18",
+            "titre": "من آيات الإعجاز الإنبائي والتاريخي في القرآن الكريم",
+            "token": "e77ca7f1-dc9a-441e-9eb4-12d0e93d4d17",
+            "cover": "https://i.gyazo.com/71e61cbfaf686b0549328f6ef660fcc5.png",
+            "auteur": "زغلول النجار",
+            "year": "2025",
+            "keyTheme": "إسلاميات",
+            "nbr_pages": 1252
+        },
+        {
+            "date": "2025-12-26T10:43:11.068Z",
+            "activation": 1,
+            "langue": "Arabe",
+            "listSommaires": [],
+            "_id": "694e66c0e3ceda2b403fd3a8",
+            "titre": "فقه السنة – سيد سابق - مجلد 3",
+            "token": "e062da7d-bf79-4af6-b8ac-f1e26560a037",
+            "cover": "https://i.gyazo.com/93d0ae38b1f8ad5dae83a107cf591532.png",
+            "auteur": "سيد سابق",
+            "year": "2025",
+            "keyTheme": "إسلاميات",
+            "nbr_pages": 320
+        },
+        {
+            "date": "2025-12-25T15:04:57.424Z",
+            "activation": 1,
+            "langue": "Arabe",
+            "listSommaires": [
+                {
+                    "titre": "الزواج",
+                    "page": 4
+                },
+                {
+                    "titre": "الطلاق",
+                    "page": 154
+                },
+                {
+                    "titre": "الخلع",
+                    "page": 190
+                },
+                {
+                    "titre": "الظهار",
+                    "page": 199
+                },
+                {
+                    "titre": "الفسخ",
+                    "page": 201
+                },
+                {
+                    "titre": "اللعان",
+                    "page": 202
+                },
+                {
+                    "titre": "العدة",
+                    "page": 208
+                },
+                {
+                    "titre": "الحظانة",
+                    "page": 215
+                },
+                {
+                    "titre": "الحدود",
+                    "page": 227
+                },
+                {
+                    "titre": "الخمر",
+                    "page": 234
+                },
+                {
+                    "titre": "المخدرات",
+                    "page": 245
+                },
+                {
+                    "titre": "الزنى",
+                    "page": 255
+                },
+                {
+                    "titre": "القدف",
+                    "page": 278
+                },
+                {
+                    "titre": "الردة",
+                    "page": 285
+                },
+                {
+                    "titre": "الحرابة",
+                    "page": 294
+                },
+                {
+                    "titre": "التوبة ",
+                    "page": 305
+                },
+                {
+                    "titre": "السرقة ",
+                    "page": 307
+                }
+            ],
+            "_id": "694d52c32e8e784e1cb8b386",
+            "titre": "فقه السنة – سيد سابق - مجلد 2 ",
+            "token": "b31cc0e6-370c-471c-aa8c-636123609912",
+            "cover": "https://i.gyazo.com/93d0ae38b1f8ad5dae83a107cf591532.png",
+            "auteur": "سيد سابق",
+            "year": "2025",
+            "keyTheme": "إسلاميات",
+            "nbr_pages": 382
+        },
+        {
+            "date": "2025-12-24T12:46:55.767Z",
+            "activation": 1,
+            "langue": "Arabe",
+            "listSommaires": [
+                {
+                    "titre": "الطهارة",
+                    "page": 10
+                },
+                {
+                    "titre": "الصلاة",
+                    "page": 62
+                },
+                {
+                    "titre": "الزكاة",
+                    "page": 234
+                },
+                {
+                    "titre": "الصيام",
+                    "page": 303
+                },
+                {
+                    "titre": "الاعتكاف",
+                    "page": 330
+                },
+                {
+                    "titre": "الجنا ئز",
+                    "page": 337
+                },
+                {
+                    "titre": "الذكر",
+                    "page": 404
+                },
+                {
+                    "titre": "الحج",
+                    "page": 436
+                }
+            ],
+            "_id": "694be0cd5d75602ccc6b2800",
+            "titre": "فقه السنة – سيد سابق - مجلد 1 ",
+            "token": "5cd1dcca-755b-4f34-9198-4bbeb779f6d8",
+            "cover": "https://i.gyazo.com/5420ff59149d6caf554f3200ab93f792.png",
+            "auteur": "سيد سابق",
+            "year": "2025",
+            "keyTheme": "إسلاميات",
+            "nbr_pages": 528
+        },
+        {
+            "date": "2025-12-19T14:40:27.905Z",
+            "activation": 1,
+            "langue": "Arabe",
+            "listSommaires": [
+                {
+                    "titre": "الباب الاول",
+                    "page": 4
+                }
+            ],
+            "_id": "694563dd378ce068b4e988a6",
+            "titre": "شرح الشفا للقاضي عياض الجزء التاني",
+            "token": "c8efc82c-d15b-4b39-a477-826083d17261",
+            "cover": "https://i.gyazo.com/b71534890cea76d1f569cf76645a98f4.png",
+            "auteur": "القاضي عياض",
+            "year": "2025",
+            "keyTheme": "إسلاميات",
+            "nbr_pages": 566
+        }
+    ]
+}
