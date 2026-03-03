@@ -1,17 +1,3 @@
-/*
-🎯 Résultat
-
-Maintenant ton lecteur :
-
-📖 Affiche automatiquement :
-فقه السنة – سيد سابق - مجلد 1
-✍️ سيد سابق
-
-📂 Chargé depuis data-livre.json
-💾 Continue à sauvegarder la dernière page
-🎞 Garde le mini slider Kindle
-*/
-
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -26,63 +12,40 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      themeMode: ThemeMode.system,
-      theme: ThemeData.light(),
-      darkTheme: ThemeData.dark(),
-      home: const BookReader(),
+      home: BookReader(),
     );
   }
 }
 
-/* =======================
-   MODEL PAGE
-======================= */
-
 class BookPage {
   final String id;
-  final String title;
   final int numPage;
 
-  BookPage({required this.id, required this.title, required this.numPage});
+  BookPage({required this.id, required this.numPage});
 
   factory BookPage.fromJson(Map<String, dynamic> json) {
     return BookPage(
       id: json['_id'] ?? '',
-      title: json['title'] ?? '',
       numPage: json['numPage'] ?? 0,
     );
   }
 }
 
-/* =======================
-   MODEL LIVRE
-======================= */
-
-class BookInfo {
+class Sommaire {
   final String titre;
-  final String auteur;
-  final int nbrPages;
+  final int page;
 
-  BookInfo({
-    required this.titre,
-    required this.auteur,
-    required this.nbrPages,
-  });
+  Sommaire({required this.titre, required this.page});
 
-  factory BookInfo.fromJson(Map<String, dynamic> json) {
-    return BookInfo(
-      titre: json['titre'] ?? '',
-      auteur: json['auteur'] ?? '',
-      nbrPages: json['nbr_pages'] ?? 0,
+  factory Sommaire.fromJson(Map<String, dynamic> json) {
+    return Sommaire(
+      titre: json['titre'],
+      page: json['page'],
     );
   }
 }
-
-/* =======================
-   BOOK READER
-======================= */
 
 class BookReader extends StatefulWidget {
   const BookReader({super.key});
@@ -93,15 +56,16 @@ class BookReader extends StatefulWidget {
 
 class _BookReaderState extends State<BookReader> {
   late Future<List<BookPage>> futurePages;
-
-  PageController? _pageController;
+  final PageController _pageController = PageController();
   final ScrollController _miniSliderController = ScrollController();
 
   int currentIndex = 0;
-  bool showMiniSlider = true;
-
   String bookTitle = "";
-  String bookAuthor = "";
+  List<Sommaire> listSommaires = [];
+
+  List<int> bookmarks = [];
+  Map<String, String> bookmarkNotes = {};
+  bool showMiniSlider = true;
 
   @override
   void initState() {
@@ -109,33 +73,30 @@ class _BookReaderState extends State<BookReader> {
     futurePages = loadBook();
   }
 
-  /* =======================
-     CHARGEMENT LIVRE + INFOS
-  ======================= */
-
   Future<List<BookPage>> loadBook() async {
     final prefs = await SharedPreferences.getInstance();
     currentIndex = prefs.getInt("lastPage") ?? 0;
 
-    // 🔥 Charger infos livre
-    final bookInfoString =
-        await rootBundle.loadString('assets/data-livre.json');
-    final List<dynamic> bookData = json.decode(bookInfoString);
+    final savedBookmarks = prefs.getStringList("bookmarks") ?? [];
+    bookmarks = savedBookmarks.map((e) => int.parse(e)).toList();
 
-    if (bookData.isNotEmpty) {
-      final info = BookInfo.fromJson(bookData.first);
-      bookTitle = info.titre;
-      bookAuthor = info.auteur;
-    }
+    final savedNotes = prefs.getString("bookmarkNotes") ?? "{}";
+    bookmarkNotes = Map<String, String>.from(json.decode(savedNotes));
 
-    // 🔥 Charger pages
     final response = await rootBundle.loadString('assets/book.json');
     final List<dynamic> data = json.decode(response);
-
     final pages = data.map((e) => BookPage.fromJson(e)).toList();
     pages.sort((a, b) => a.numPage.compareTo(b.numPage));
 
-    _pageController = PageController(initialPage: currentIndex);
+    final livreData = await rootBundle.loadString('assets/data-livre.json');
+    final List<dynamic> livreJson = json.decode(livreData);
+    final livre = livreJson.first;
+
+    bookTitle = livre['titre'] ?? "";
+
+    listSommaires = (livre['listSommaires'] as List)
+        .map((e) => Sommaire.fromJson(e))
+        .toList();
 
     return pages;
   }
@@ -145,10 +106,59 @@ class _BookReaderState extends State<BookReader> {
     await prefs.setInt("lastPage", index);
   }
 
-  void goToPage(int index) {
-    if (_pageController == null) return;
+  Future<void> saveBookmarks() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(
+        "bookmarks", bookmarks.map((e) => e.toString()).toList());
+    await prefs.setString("bookmarkNotes", json.encode(bookmarkNotes));
+  }
 
-    _pageController!.animateToPage(
+  void toggleBookmark() {
+    setState(() {
+      if (bookmarks.contains(currentIndex)) {
+        bookmarks.remove(currentIndex);
+        bookmarkNotes.remove(currentIndex.toString());
+      } else {
+        bookmarks.add(currentIndex);
+        bookmarks.sort();
+        bookmarkNotes[currentIndex.toString()] = "";
+      }
+    });
+    saveBookmarks();
+  }
+
+  void editNoteDialog(int pageIndex) {
+    final controller =
+        TextEditingController(text: bookmarkNotes[pageIndex.toString()] ?? "");
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text("Note page ${pageIndex + 1}"),
+        content: TextField(
+          controller: controller,
+          maxLines: 5,
+          decoration: const InputDecoration(hintText: "Écrire une note..."),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Annuler")),
+          ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  bookmarkNotes[pageIndex.toString()] = controller.text;
+                });
+                saveBookmarks();
+                Navigator.pop(context);
+              },
+              child: const Text("Enregistrer"))
+        ],
+      ),
+    );
+  }
+
+  void goToPage(int index) {
+    _pageController.animateToPage(
       index,
       duration: const Duration(milliseconds: 350),
       curve: Curves.easeInOut,
@@ -161,9 +171,99 @@ class _BookReaderState extends State<BookReader> {
     );
   }
 
-  /* =======================
-     MINI SLIDER
-  ======================= */
+  void showGoToPageDialog(List<BookPage> pages) {
+    final controller = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Aller à une page"),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(hintText: "1 - ${pages.length}"),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Annuler")),
+          ElevatedButton(
+              onPressed: () {
+                final value = int.tryParse(controller.text);
+                if (value != null && value > 0 && value <= pages.length) {
+                  Navigator.pop(context);
+                  goToPage(value - 1);
+                }
+              },
+              child: const Text("OK"))
+        ],
+      ),
+    );
+  }
+
+  void showBookmarks(List<BookPage> pages) {
+    if (bookmarks.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("Aucun signet")));
+      return;
+    }
+
+    showModalBottomSheet(
+        context: context,
+        builder: (_) => ListView.builder(
+              itemCount: bookmarks.length,
+              itemBuilder: (context, index) {
+                final pageIndex = bookmarks[index];
+                final note = bookmarkNotes[pageIndex.toString()] ?? "";
+
+                return ListTile(
+                  title: Text("Page ${pageIndex + 1}"),
+                  subtitle: note.isNotEmpty ? Text(note) : null,
+                  trailing: IconButton(
+                      icon: const Icon(Icons.edit),
+                      onPressed: () => editNoteDialog(pageIndex)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    goToPage(pageIndex);
+                  },
+                );
+              },
+            ));
+  }
+
+  void showTableOfContents(List<BookPage> pages) {
+    if (listSommaires.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Table des matières vide")),
+      );
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      builder: (_) => ListView.builder(
+        itemCount: listSommaires.length,
+        itemBuilder: (context, index) {
+          final item = listSommaires[index];
+
+          return ListTile(
+            leading: const Icon(Icons.menu_book),
+            title: Text(
+              item.titre,
+              textDirection: TextDirection.rtl,
+            ),
+            trailing: Text("Page ${item.page}"),
+            onTap: () {
+              Navigator.pop(context);
+              if (item.page - 1 < pages.length) {
+                goToPage(item.page);
+              }
+            },
+          );
+        },
+      ),
+    );
+  }
 
   Widget buildMiniSlider(List<BookPage> pages) {
     return Positioned(
@@ -172,32 +272,31 @@ class _BookReaderState extends State<BookReader> {
       right: 0,
       child: Container(
         height: 95,
-        color: Colors.black.withOpacity(0.35),
+        color: Colors.black.withOpacity(0.4),
         child: ListView.builder(
           controller: _miniSliderController,
           scrollDirection: Axis.horizontal,
           itemCount: pages.length,
           itemBuilder: (context, index) {
             final page = pages[index];
-            final bool isCurrent = index == currentIndex;
+            final isCurrent = index == currentIndex;
 
             return GestureDetector(
               onTap: () => goToPage(index),
-              child: AnimatedScale(
-                scale: isCurrent ? 1.3 : 1.0,
+              child: AnimatedContainer(
                 duration: const Duration(milliseconds: 250),
-                child: AnimatedOpacity(
-                  opacity: isCurrent ? 1.0 : 0.6,
-                  duration: const Duration(milliseconds: 250),
-                  child: Container(
-                    margin:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
-                    width: 60,
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                          color: isCurrent ? Colors.amber : Colors.transparent,
-                          width: 2),
-                    ),
+                margin: const EdgeInsets.symmetric(horizontal: 5, vertical: 8),
+                width: isCurrent ? 70 : 50,
+                height: isCurrent ? 85 : 60,
+                decoration: BoxDecoration(
+                  border: Border.all(
+                      color: isCurrent ? Colors.yellow : Colors.white,
+                      width: 2),
+                ),
+                child: Transform.scale(
+                  scale: isCurrent ? 1.2 : 1.0,
+                  child: Opacity(
+                    opacity: isCurrent ? 1.0 : 0.6,
                     child: Image.asset(
                       "assets/images/${page.id}.jpg",
                       fit: BoxFit.cover,
@@ -212,40 +311,46 @@ class _BookReaderState extends State<BookReader> {
     );
   }
 
-  /* =======================
-     UI
-  ======================= */
-
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<BookPage>>(
       future: futurePages,
       builder: (context, snapshot) {
-        if (!snapshot.hasData || _pageController == null) {
+        if (!snapshot.hasData) {
           return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
+              body: Center(child: CircularProgressIndicator()));
         }
 
         final pages = snapshot.data!;
 
         return Scaffold(
           appBar: AppBar(
-            title: Column(
-              children: [
-                Text(
-                  bookTitle.isNotEmpty ? bookTitle : "Chargement...",
-                  style: const TextStyle(fontSize: 16),
-                  textAlign: TextAlign.center,
-                ),
-                if (bookAuthor.isNotEmpty)
-                  Text(
-                    bookAuthor,
-                    style: const TextStyle(fontSize: 12),
-                  ),
-              ],
-            ),
+            title: Text(bookTitle),
             centerTitle: true,
+            actions: [
+              IconButton(
+                  icon: const Icon(Icons.search),
+                  onPressed: () => showGoToPageDialog(pages)),
+              IconButton(
+                  icon: Icon(bookmarks.contains(currentIndex)
+                      ? Icons.bookmark
+                      : Icons.bookmark_border),
+                  onPressed: toggleBookmark),
+              IconButton(
+                  icon: const Icon(Icons.list),
+                  onPressed: () => showBookmarks(pages)),
+              IconButton(
+                  icon: const Icon(Icons.menu_book),
+                  onPressed: () => showTableOfContents(pages)),
+              IconButton(
+                  icon: Icon(
+                      showMiniSlider ? Icons.expand_less : Icons.expand_more),
+                  onPressed: () {
+                    setState(() {
+                      showMiniSlider = !showMiniSlider;
+                    });
+                  }),
+            ],
           ),
           body: Stack(
             children: [
@@ -275,14 +380,7 @@ class _BookReaderState extends State<BookReader> {
                       },
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Text(
-                      "Page ${currentIndex + 1} / ${pages.length}",
-                      style: const TextStyle(fontSize: 16),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 100),
                 ],
               ),
               if (showMiniSlider) buildMiniSlider(pages),
