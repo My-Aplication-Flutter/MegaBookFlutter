@@ -1,0 +1,83 @@
+Tu changes le nom **affiché** de l’appli Android dans le projet `android`, pas dans le code Dart.
+
+### Étapes rapides
+
+1. Ouvre le fichier :
+   `android/app/src/main/AndroidManifest.xml` [flutterbeads](https://www.flutterbeads.com/change-app-name-in-flutter/)
+2. Dans la balise `<application ...>`, modifie l’attribut `android:label` avec le nouveau nom, par ex. :
+   ```xml
+   <application
+       android:name="io.flutter.app.FlutterApplication"
+       android:label="Mon Nouveau Nom"
+       android:icon="@mipmap/ic_launcher">
+   ```
+ [edentech.gitbook](https://edentech.gitbook.io/meetup/flutter-app/change-app-name-and-id)
+3. Dans le terminal, à la racine du projet, lance :
+   ```bash
+   flutter clean
+   flutter run
+   ```
+   pour relancer l’app et voir le nouveau nom sur le launcher. [docs.salebot](https://docs.salebot.app/chat-app/change-app-name/)
+
+Si tu veux aussi changer l’ID du package Android (applicationId), ça se fait dans `android/app/build.gradle` (`defaultConfig { applicationId "com.example.monapp" }`). [edentech.gitbook](https://edentech.gitbook.io/meetup/flutter-app/change-app-name-and-id)
+
+
+/************************************************************************/
+
+Le plus simple est d’utiliser le package **flutter_launcher_icons** qui génère automatiquement les icônes Android (et iOS, web, etc.) à partir d’une seule image. [repeato](https://www.repeato.app/how-to-change-the-application-launcher-icon-in-flutter/)
+
+### 1. Ajouter le package
+
+Dans `pubspec.yaml` :
+
+```yaml
+dev_dependencies:
+  flutter_launcher_icons: "^0.13.1"  # ou la dernière version
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icon/icon.png"  # chemin vers ton image
+  min_sdk_android: 21
+```
+
+
+Assure‑toi que le fichier `assets/icon/icon.png` existe et qu’il est référencé dans tes assets si besoin. [geeksforgeeks](https://www.geeksforgeeks.org/flutter/flutter-changing-app-icon/)
+
+### 2. Installer les dépendances
+
+Dans le terminal, à la racine du projet :
+
+```bash
+flutter pub get
+```
+
+
+### 3. Générer les icônes
+
+Toujours à la racine du projet :
+
+```bash
+flutter pub run flutter_launcher_icons:main
+```
+ou sur les versions récentes :
+
+```bash
+dart run flutter_launcher_icons
+```
+
+
+Le package va remplacer les icônes dans `android/app/src/main/res/mipmap-*` automatiquement. [educative](https://www.educative.io/answers/how-to-change-app-launch-icon-in-flutter)
+
+### 4. Rebuild l’application
+
+```bash
+flutter clean
+flutter run
+```
+pour voir la nouvelle icône sur l’émulateur ou le téléphone. [repeato](https://www.repeato.app/how-to-change-the-application-launcher-icon-in-flutter/)
+
+***
+
+Si tu préfères une méthode **manuelle Android seulement**, tu peux directement remplacer les images dans `android/app/src/main/res/mipmap-*` par tes propres icônes (mêmes noms de fichiers) puis rebuild. [educative](https://www.educative.io/answers/how-to-change-app-launch-icon-in-flutter)
+

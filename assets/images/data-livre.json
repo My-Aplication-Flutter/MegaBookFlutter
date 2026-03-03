@@ -1,0 +1,50 @@
+[
+  {
+    "date": "2025-12-24T12:46:55.767Z",
+    "activation": 1,
+    "langue": "Arabe",
+    "listSommaires": [
+      {
+        "titre": "الطهارة",
+        "page": 10
+      },
+      {
+        "titre": "الصلاة",
+        "page": 62
+      },
+      {
+        "titre": "الزكاة",
+        "page": 234
+      },
+      {
+        "titre": "الصيام",
+        "page": 303
+      },
+      {
+        "titre": "الاعتكاف",
+        "page": 330
+      },
+      {
+        "titre": "الجنا ئز",
+        "page": 337
+      },
+      {
+        "titre": "الذكر",
+        "page": 404
+      },
+      {
+        "titre": "الحج",
+        "page": 436
+      }
+    ],
+    "_id": "694be0cd5d75602ccc6b2800",
+    "titre": "فقه السنة – سيد سابق - مجلد 1 ",
+    "token": "5cd1dcca-755b-4f34-9198-4bbeb779f6d8",
+    "cover": "https://i.gyazo.com/5420ff59149d6caf554f3200ab93f792.png",
+    "auteur": "سيد سابق",
+    "year": "2025",
+    "keyTheme": "إسلاميات",
+    "__v": 0,
+    "nbr_pages": 528
+  }
+]
