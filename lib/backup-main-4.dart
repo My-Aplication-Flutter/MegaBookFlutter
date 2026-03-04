@@ -173,6 +173,7 @@ class _BookReaderState extends State<BookReader> {
 
   void showGoToPageDialog(List<BookPage> pages) {
     final controller = TextEditingController();
+
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -231,71 +232,35 @@ class _BookReaderState extends State<BookReader> {
   }
 
   void showTableOfContents(List<BookPage> pages) {
-    if (listSommaires.isEmpty) return;
-
-    int activeIndex = 0;
-    for (int i = 0; i < listSommaires.length; i++) {
-      if (currentIndex + 1 >= listSommaires[i].page) {
-        activeIndex = i;
-      }
+    if (listSommaires.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Table des matières vide")),
+      );
+      return;
     }
-
-    final ScrollController scrollController =
-        ScrollController(initialScrollOffset: activeIndex * 70);
 
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => SizedBox(
-        height: MediaQuery.of(context).size.height * 0.75,
-        child: ListView.builder(
-          controller: scrollController,
-          itemCount: listSommaires.length,
-          itemBuilder: (context, index) {
-            final item = listSommaires[index];
-            final bool isActive = index == activeIndex;
+      builder: (_) => ListView.builder(
+        itemCount: listSommaires.length,
+        itemBuilder: (context, index) {
+          final item = listSommaires[index];
 
-            return AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
-              margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: isActive
-                    ? Theme.of(context).colorScheme.primary.withOpacity(0.15)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-                border: isActive
-                    ? Border.all(
-                        color: Theme.of(context).colorScheme.primary,
-                        width: 1.5)
-                    : null,
-              ),
-              child: ListTile(
-                leading: Icon(
-                  Icons.menu_book,
-                  color:
-                      isActive ? Theme.of(context).colorScheme.primary : null,
-                ),
-                title: Text(
-                  item.titre,
-                  textDirection: TextDirection.rtl,
-                  style: TextStyle(
-                      fontWeight:
-                          isActive ? FontWeight.bold : FontWeight.normal),
-                ),
-                trailing: Text("Page ${item.page}"),
-                onTap: () {
-                  Navigator.pop(context);
-                  if (item.page - 1 < pages.length) {
-                    goToPage(item.page - 1);
-                  }
-                },
-              ),
-            );
-          },
-        ),
+          return ListTile(
+            leading: const Icon(Icons.menu_book),
+            title: Text(
+              item.titre,
+              textDirection: TextDirection.rtl,
+            ),
+            trailing: Text("Page ${item.page}"),
+            onTap: () {
+              Navigator.pop(context);
+              if (item.page - 1 < pages.length) {
+                goToPage(item.page);
+              }
+            },
+          );
+        },
       ),
     );
   }
@@ -413,13 +378,6 @@ class _BookReaderState extends State<BookReader> {
                           ),
                         );
                       },
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    child: Text(
-                      "Page ${currentIndex + 1} / ${pages.length}",
-                      style: const TextStyle(fontSize: 16),
                     ),
                   ),
                   const SizedBox(height: 100),
