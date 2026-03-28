@@ -91,10 +91,13 @@ class _MyHomePageState extends State<MyHomePage> {
     futureBooks = fetchLastBooks();
     futureCyclesFinance = fetchLastCyclesMagazines("Finance");
     futureCyclesInformatique = fetchLastCyclesMagazines("Informatique");
-    futureCyclesBusiness =  fetchLastCyclesMagazines("Business"); // ajout Business
-    futureCyclesPsychologie = fetchLastCyclesMagazines("Psychologie"); // ajout Psychologie
+    futureCyclesBusiness =
+        fetchLastCyclesMagazines("Business"); // ajout Business
+    futureCyclesPsychologie =
+        fetchLastCyclesMagazines("Psychologie"); // ajout Psychologie
     // futureCyclesPsychologie =    fetchLastCyclesMagazines("Actualite"); // ajout Actualite
-    futureCyclesScience =  fetchLastCyclesMagazines("Science"); // ajout Actualite
+    futureCyclesScience =
+        fetchLastCyclesMagazines("Science"); // ajout Actualite
     futureCyclesSante = fetchLastCyclesMagazines("Sante"); // ajout Sante
   }
 
