@@ -1,8 +1,8 @@
 name: megabook
-description: A new Flutter project.
+description: Lecteur livres et magazines.
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.1+1
 
 environment:
   sdk: ^3.0.0
@@ -20,6 +20,7 @@ dependencies:
   flutter_secure_storage: ^9.2.2
   permission_handler: ^12.0.1
   shared_preferences: ^2.2.2
+
 
 flutter_icons:
   android: "launcher_icon"

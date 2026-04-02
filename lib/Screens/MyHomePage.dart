@@ -5,37 +5,7 @@ import 'dart:convert';
 import '../menu.dart'; // Adapté à ton projet
 import './Livres/pageLivre.dart';
 import './Magazines/CycleMagazinePage.dart';
-
-class Livre {
-  final String id, titre, cover, auteur, year, subtitle, keyTheme, date;
-  final int nbrPages;
-
-  Livre({
-    required this.id,
-    required this.titre,
-    required this.cover,
-    required this.auteur,
-    required this.year,
-    required this.subtitle,
-    required this.keyTheme,
-    required this.nbrPages,
-    required this.date,
-  });
-
-  factory Livre.fromJson(Map<String, dynamic> json) {
-    return Livre(
-      id: json['_id'],
-      titre: json['titre'],
-      cover: json['cover'],
-      auteur: json['auteur'],
-      year: json['year'],
-      subtitle: json['subtitle'],
-      keyTheme: json['keyTheme'],
-      nbrPages: json['nbr_pages'],
-      date: json['date'],
-    );
-  }
-}
+import '../../Models/livre.dart';
 
 // CycleMagazine modèle
 class CycleMagazineModel {
@@ -76,7 +46,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  late Future<List<Livre>> futureBooks;
+  late Future<List<Book>> futureBooks;
   late Future<List<CycleMagazineModel>> futureCyclesFinance;
   late Future<List<CycleMagazineModel>> futureCyclesInformatique;
   late Future<List<CycleMagazineModel>> futureCyclesBusiness;
@@ -101,7 +71,7 @@ class _MyHomePageState extends State<MyHomePage> {
     futureCyclesSante = fetchLastCyclesMagazines("Sante"); // ajout Sante
   }
 
-  Future<List<Livre>> fetchLastBooks() async {
+  Future<List<Book>> fetchLastBooks() async {
     final response = await http.post(
       Uri.parse(
           'https://backend-mega-book-theta.vercel.app/api/getLastLivres'), // Remplace par ton URL
@@ -109,7 +79,7 @@ class _MyHomePageState extends State<MyHomePage> {
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       final List<dynamic> list = data['lastLivres'];
-      return list.map((e) => Livre.fromJson(e)).toList();
+      return list.map((e) => Book.fromJson(e)).toList();
     } else {
       throw Exception('Erreur de chargement');
     }
@@ -148,7 +118,7 @@ class _MyHomePageState extends State<MyHomePage> {
             // Slider Livres
             sectionSlider(
               'Derniers livres ajoutés',
-              FutureBuilder<List<Livre>>(
+              FutureBuilder<List<Book>>(
                 future: futureBooks,
                 builder: (context, snapshot) => sliderBuilder(
                   snapshot: snapshot,
@@ -157,11 +127,10 @@ class _MyHomePageState extends State<MyHomePage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => BookImagesPage(
-                            livreId: book.id,
-                            titreLivre: book.titre,
-                          ),
-                        ),
+                            builder: (context) => BookImagesPage(
+                                livreId: book.id,
+                                titreLivre: book.titre,
+                                listSommaires: book.listSommaires)),
                       );
                     },
                     child: cardLivre(book),
@@ -392,7 +361,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   // widgets cards
-  Widget cardLivre(Livre book) => Card(
+  Widget cardLivre(Book book) => Card(
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
         elevation: 6,

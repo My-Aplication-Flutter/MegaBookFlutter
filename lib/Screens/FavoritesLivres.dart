@@ -32,6 +32,8 @@ class _FavoritesPageState extends State<FavoritesLivresPage> {
             year: m['year'],
             subtitle: m['subtitle'],
             nbrPages: m['nbrPages'],
+            langue: m['langue'],
+            listSommaires: m['listSommaires'],
             keyTheme: ''))
         .toList();
   }
@@ -41,9 +43,9 @@ class _FavoritesPageState extends State<FavoritesLivresPage> {
       context,
       MaterialPageRoute(
         builder: (context) => BookImagesPage(
-          livreId: book.id,
-          titreLivre: book.titre,
-        ),
+            livreId: book.id,
+            titreLivre: book.titre,
+            listSommaires: book.listSommaires),
       ),
     );
   }
@@ -200,6 +202,14 @@ class _FavoritesPageState extends State<FavoritesLivresPage> {
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                "${book.langue}",
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[700],
+                                ),
                               ),
                               if (book.subtitle.isNotEmpty) ...[
                                 const SizedBox(height: 4),

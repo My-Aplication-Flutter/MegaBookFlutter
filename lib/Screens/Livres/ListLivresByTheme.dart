@@ -104,9 +104,9 @@ class _BooksByThemePageState extends State<BooksByThemePage> {
                     context,
                     MaterialPageRoute(
                       builder: (context) => BookImagesPage(
-                        livreId: book.id,
-                        titreLivre: book.titre,
-                      ),
+                          livreId: book.id,
+                          titreLivre: book.titre,
+                          listSommaires: book.listSommaires),
                     ),
                   );
                 },
@@ -431,6 +431,14 @@ class _BooksByThemePageState extends State<BooksByThemePage> {
                                 const SizedBox(height: 8),
                                 Text(
                                   "${book.auteur} • ${book.year}",
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey[700],
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  "${book.langue}",
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: Colors.grey[700],

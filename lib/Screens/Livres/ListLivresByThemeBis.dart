@@ -99,9 +99,9 @@ class _BooksByThemePageState extends State<BooksByThemePage> {
                     context,
                     MaterialPageRoute(
                       builder: (context) => BookImagesPage(
-                        livreId: book.id,
-                        titreLivre: book.titre,
-                      ),
+                          livreId: book.id,
+                          titreLivre: book.titre,
+                          listSommaires: book.listSommaires),
                     ),
                   );
                 },

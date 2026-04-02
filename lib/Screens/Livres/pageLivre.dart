@@ -3,7 +3,9 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:photo_view/photo_view.dart';
 import '../../Models/pageLivre.dart';
+import '../../Models/livre.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ImageZoomPage extends StatelessWidget {
   final String imageUrl;
@@ -32,11 +34,13 @@ class ImageZoomPage extends StatelessWidget {
 class BookImagesPage extends StatefulWidget {
   final String livreId;
   final String titreLivre;
+  final List<Sommaire> listSommaires;
 
   const BookImagesPage({
     super.key,
     required this.livreId,
     required this.titreLivre,
+    required this.listSommaires,
   });
 
   @override
@@ -55,77 +59,99 @@ class _BookImagesPageState extends State<BookImagesPage> {
   String? keyTheme = '';
   String? coverLivre = '';
 
-  // 🔥 Etat chatbot
+  // CHAT
   bool isLoadingChat = false;
-  List<Map<String, dynamic>> chatHistory = [];
+  List<Map<String, String>> chatMessages = [];
+  TextEditingController chatController = TextEditingController();
+
+  List<String> models = [];
+  String? selectedModel;
+  bool isLoadingModels = true;
+
+  late String storageKey;
+
+  String ocrText = "";
+  String translatedText = "";
+  bool isProcessingOCR = false;
 
   @override
   void initState() {
+    storageKey = "chat_${widget.livreId}";
     super.initState();
     futureImages = fetchBookImages(widget.livreId);
+    fetchModels();
+    loadChatHistory();
     verifyUserData();
   }
 
-  Future<void> verifyUserData() async {
-    token = await _storage.read(key: 'auth_token');
-    _initCurrentIndex();
-  }
+  // ================= OCR et traduction  =================
 
-  Future<void> _initCurrentIndex() async {
-    int lastIndex = await fetchCurrentIndex();
-    setState(() {
-      currentIndex = lastIndex;
-      currentIndexMax = lastIndex;
-    });
-  }
-
-  Future<int> fetchCurrentIndex() async {
+  Future<String> translateText(String text) async {
     final response = await http.post(
-      Uri.parse(
-          'https://backend-mega-book-theta.vercel.app/api/getDataPageNavigationLecture'),
+      Uri.parse('https://backend-mega-book-theta.vercel.app/api/translate'),
       headers: {'Content-Type': 'application/json'},
-      body: json.encode({
-        "ObjectNavigationPage": {"token": token, "document_id": widget.livreId}
-      }),
+      body: json.encode({"text": text, "source": "en", "target": "fr"}),
     );
 
-    if (response.statusCode == 200) {
-      final decoded = json.decode(response.body);
-      if (decoded["reponse"] == true && decoded["data"] != null) {
-        return ((decoded["data"]["compteurPage"] + 1) ?? 1) - 1;
-      }
-    }
-    return 0;
+    final decoded = json.decode(response.body);
+    return decoded["translatedText"] ?? "";
   }
 
-  Future<void> updateCurrentPage() async {
-    final images = await futureImages;
-    final urlPage = images[currentIndex].urlImage;
-
-    final body = {
-      "ObjectNavigationPage": {
-        "token": token,
-        "dateConsultation": DateTime.now().toIso8601String(),
-        "document_id": widget.livreId,
-        "nom_document": widget.titreLivre,
-        "compteurPage": currentIndex,
-        "compteurPageMaxi": currentIndexMax,
-        "urlPage": urlPage,
-        "cover_document": coverLivre,
-        "keyTheme": keyTheme,
-        "nomTheme": keyTheme,
-        "typeDocument": 'livre',
-        "keySection": 'livres'
-      }
-    };
-
-    await http.post(
-      Uri.parse(
-          'https://backend-mega-book-theta.vercel.app/api/postUpdatePageNavigationLecture'),
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode(body),
+  void openOCRModal(String imagePath) {
+    showDialog(
+      context: context,
+      builder: (_) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                height: 500,
+                child: Column(
+                  children: [
+                    const Text(
+                      "🔍 OCR & Traduction",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 10),
+                    ElevatedButton(
+                      onPressed: () async {
+                        setModalState(() {});
+                      },
+                      child: const Text("Scanner & Traduire"),
+                    ),
+                    if (isProcessingOCR)
+                      const Padding(
+                        padding: EdgeInsets.all(10),
+                        child: CircularProgressIndicator(),
+                      ),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: [
+                            const Text("📄 Texte détecté"),
+                            Text(ocrText),
+                            const Divider(),
+                            const Text("🇫🇷 Traduction"),
+                            Text(translatedText),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
+
+  // ================= FETCH =================
 
   Future<List<BookPageImage>> fetchBookImages(String livreId) async {
     final response = await http.post(
@@ -135,78 +161,563 @@ class _BookImagesPageState extends State<BookImagesPage> {
       body: json.encode({"livre_id": livreId}),
     );
 
-    if (response.statusCode == 200) {
+    final decoded = json.decode(response.body);
+
+    keyTheme = decoded["dataLivre"]["keyTheme"];
+    coverLivre = decoded["dataLivre"]["cover"];
+
+    final list = decoded["listPageByLivre"] as List<dynamic>;
+    return list.map((e) => BookPageImage.fromJson(e)).toList();
+  }
+
+  Future<void> verifyUserData() async {
+    token = await _storage.read(key: 'auth_token');
+  }
+
+  // ================= CHAT =================
+  Future<void> fetchModels() async {
+    try {
+      final response = await http.post(
+        Uri.parse(
+            'https://backend-mega-book-theta.vercel.app/api/list_models_ollama_cloud'),
+      );
+
       final decoded = json.decode(response.body);
 
-      keyTheme = decoded["dataLivre"]["keyTheme"];
-      coverLivre = decoded["dataLivre"]["cover"];
-
-      final list = decoded["listPageByLivre"] as List<dynamic>;
-      return list.map((e) => BookPageImage.fromJson(e)).toList();
-    } else {
-      throw Exception('Erreur récupération images');
+      if (decoded["state"]) {
+        setState(() {
+          models = List<String>.from(decoded["listModels"]);
+          selectedModel = models.first;
+          isLoadingModels = false;
+        });
+      }
+    } catch (_) {
+      setState(() {
+        models = [];
+        selectedModel = models.first;
+        isLoadingModels = false;
+      });
     }
   }
 
+  Future<void> sendMessageToChat() async {
+    final text = chatController.text.trim();
+    if (text.isEmpty || isLoadingChat) return;
+
+    setState(() {
+      chatMessages.add({"role": "user", "content": text});
+      isLoadingChat = true;
+    });
+
+    chatController.clear();
+
+    final response = await http.post(
+      Uri.parse(
+          'https://backend-mega-book-theta.vercel.app/api/chat_ollama_cloud'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({"text": text, "model": selectedModel}),
+    );
+
+    final decoded = json.decode(response.body);
+
+    setState(() {
+      chatMessages
+          .add({"role": "assistant", "content": decoded["message"]["content"]});
+      isLoadingChat = false;
+    });
+  }
+
+  // ================= MODAL =================
+
+  Future<void> loadChatHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    final stored = prefs.getStringList(storageKey);
+
+    if (stored != null) {
+      setState(() {
+        chatMessages = stored
+            .map((e) => Map<String, String>.from(json.decode(e)))
+            .toList();
+      });
+    }
+  }
+
+  Future<void> clearChatHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(storageKey);
+    setState(() => chatMessages.clear());
+  }
+
+  void openChatModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return SizedBox(
+              height: MediaQuery.of(context).size.height * 0.75,
+              child: Column(
+                children: [
+                  // HEADER
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const SizedBox(width: 10),
+                      const Text("Assistant IA"),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () async {
+                          await clearChatHistory();
+                          setModalState(() {});
+                        },
+                      )
+                    ],
+                  ),
+
+                  // MODELS
+                  isLoadingModels
+                      ? const CircularProgressIndicator()
+                      : DropdownButton<String>(
+                          value: selectedModel,
+                          items: models
+                              .map((m) =>
+                                  DropdownMenuItem(value: m, child: Text(m)))
+                              .toList(),
+                          onChanged: (v) =>
+                              setModalState(() => selectedModel = v),
+                        ),
+
+                  // CHAT
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: chatMessages.length + (isLoadingChat ? 1 : 0),
+                      itemBuilder: (_, i) {
+                        if (i == chatMessages.length && isLoadingChat) {
+                          return const ListTile(
+                            title: Text("Assistant réfléchit..."),
+                            trailing: CircularProgressIndicator(),
+                          );
+                        }
+
+                        final msg = chatMessages[i];
+                        final isUser = msg["role"] == "user";
+
+                        return Align(
+                          alignment: isUser
+                              ? Alignment.centerRight
+                              : Alignment.centerLeft,
+                          child: Container(
+                            margin: const EdgeInsets.all(6),
+                            padding: const EdgeInsets.all(10),
+                            color:
+                                isUser ? Colors.deepPurple : Colors.grey[300],
+                            child: Text(msg["content"] ?? ""),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
+                  // INPUT
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(controller: chatController),
+                      ),
+                      IconButton(
+                        icon: isLoadingChat
+                            ? const CircularProgressIndicator()
+                            : const Icon(Icons.send),
+                        onPressed: isLoadingChat
+                            ? null
+                            : () async {
+                                await sendMessageToChat();
+                                setModalState(() {});
+                              },
+                      )
+                    ],
+                  )
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// ================= SOMMAIRE =================
+  ///
+  /// // ================= NAVIGATION AVANCE =================
+
+  Future<void> jumpToImage(int index) async {
+    final images = await futureImages;
+
+    if (index < 0 || index >= images.length) return;
+
+    setState(() {
+      currentIndex = index;
+
+      if (currentIndexMax < index) {
+        currentIndexMax = index;
+      }
+    });
+
+    await updateCurrentPage();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Aller à la page ${index + 1}"),
+        duration: const Duration(milliseconds: 800),
+      ),
+    );
+  }
+
+// ================= TRACKING =================
+
+  DateTime? lastUpdateTime;
+
+  Future<void> updateCurrentPage() async {
+    try {
+      // 🔥 anti spam API
+      if (lastUpdateTime != null &&
+          DateTime.now().difference(lastUpdateTime!) <
+              const Duration(seconds: 2)) {
+        return;
+      }
+
+      lastUpdateTime = DateTime.now();
+
+      final prefs = await SharedPreferences.getInstance();
+
+      // 🔥 sauvegarde locale
+      await prefs.setInt("book_${widget.livreId}_page", currentIndex);
+      await prefs.setInt("book_${widget.livreId}_max", currentIndexMax);
+
+      final response = await http.post(
+        Uri.parse(
+            "https://backend-mega-book-theta.vercel.app/api/update-reading"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode({
+          "book_id": widget.livreId,
+          "current_page": currentIndex,
+          "max_page": currentIndexMax,
+        }),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception("Erreur API");
+      }
+    } catch (e) {}
+  }
+
+  void openSommaireModal() async {
+    final images = await futureImages;
+
+    showDialog(
+      context: context,
+      builder: (_) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          insetPadding: const EdgeInsets.all(16),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            constraints: const BoxConstraints(maxHeight: 600),
+            child: Column(
+              children: [
+                // 🔥 HEADER
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      "Le sommaire",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    )
+                  ],
+                ),
+
+                const Divider(),
+
+                // 🔥 LISTE
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: widget.listSommaires.length,
+                    itemBuilder: (_, i) {
+                      final item = widget.listSommaires[i];
+
+                      return Container(
+                        margin: const EdgeInsets.symmetric(vertical: 6),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            // 🔥 TITRE
+                            Expanded(
+                              child: Text(
+                                item.titre,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+
+                            // 🔥 ACTIONS
+                            Row(
+                              children: [
+                                ElevatedButton(
+                                  onPressed: () {
+                                    Navigator.pop(context);
+
+                                    // ⚠️ page commence à 1 → index = page -1
+                                    jumpToImage(item.page - 1);
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.blue,
+                                    foregroundColor: Colors.white,
+                                  ),
+                                  child: Text("Page (${item.page.toString()})"),
+                                ),
+                              ],
+                            )
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                // 🔥 CLOSE BTN
+                Align(
+                  alignment: Alignment.bottomRight,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey,
+                    ),
+                    child: const Text("Fermer"),
+                  ),
+                )
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // ================= MENU =================
+  void openActionMenu() async {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 10),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              ListTile(
+                leading: const Icon(Icons.translate, color: Colors.deepPurple),
+                title: const Text("Afficher la traduction"),
+                onTap: () {
+                  Navigator.pop(context);
+                  openTranslationModal();
+                },
+              ),
+
+              const SizedBox(height: 20),
+              // 🔥 SOMMAIRE (conditionnel)
+              if (widget.listSommaires.isNotEmpty)
+                ListTile(
+                  leading: const Icon(Icons.list, color: Colors.deepPurple),
+                  title: const Text("Afficher le sommaire"),
+                  onTap: () {
+                    Navigator.pop(context);
+                    openSommaireModal();
+                  },
+                ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ================= TRADUCTION =================
+  void openTranslationModal() async {
+    final images = await futureImages;
+
+    int modalIndex = currentIndex;
+
+    showDialog(
+      context: context,
+      builder: (_) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final currentImage = images[modalIndex];
+
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              insetPadding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                constraints: const BoxConstraints(maxHeight: 500),
+                child: Column(
+                  children: [
+                    // 🔥 HEADER
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "📖 Traduction",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(context),
+                        )
+                      ],
+                    ),
+
+                    const Divider(),
+
+                    // 🔥 CONTENU
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: SingleChildScrollView(
+                          child: Text(
+                            currentImage.traductionText.isNotEmpty
+                                ? currentImage.traductionText
+                                : "Aucune traduction disponible",
+                            style: const TextStyle(
+                              fontSize: 16,
+                              height: 1.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    // 🔥 PAGINATION
+                    Text(
+                      "Page ${modalIndex + 1} / ${images.length}",
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    // 🔥 BUTTONS
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // PRECEDENT
+                        ElevatedButton.icon(
+                          onPressed: modalIndex > 0
+                              ? () {
+                                  setModalState(() {
+                                    modalIndex--;
+                                  });
+                                }
+                              : null,
+                          icon: const Icon(Icons.arrow_back),
+                          label: const Text("Précédent"),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.deepPurple,
+                            foregroundColor: Colors.white,
+                            disabledBackgroundColor: Colors.grey.shade300,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+
+                        // SUIVANT
+                        ElevatedButton.icon(
+                          onPressed: modalIndex < images.length - 1
+                              ? () {
+                                  setModalState(() {
+                                    modalIndex++;
+                                  });
+                                }
+                              : null,
+                          icon: const Icon(Icons.arrow_forward),
+                          label: const Text("Suivant"),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.deepPurple,
+                            foregroundColor: Colors.white,
+                            disabledBackgroundColor: Colors.grey.shade300,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // ================= NAVIGATION =================
   void nextImage(int maxIndex) {
     setState(() {
       if (currentIndex < maxIndex) currentIndex++;
-      if (currentIndexMax < maxIndex) currentIndexMax = maxIndex;
     });
-    updateCurrentPage();
   }
 
   void prevImage() {
     setState(() {
       if (currentIndex > 0) currentIndex--;
     });
-    updateCurrentPage();
-  }
-
-  void jumpToImage(int index) {
-    setState(() {
-      currentIndex = index;
-    });
-  }
-
-  // 🔥 CHATBOT
-  void openChatModal() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => Container(
-        padding: const EdgeInsets.all(16),
-        height: MediaQuery.of(context).size.height * 0.7,
-        child: Column(
-          children: [
-            const Text("Assistant IA",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const Divider(),
-            Expanded(
-              child: ListView(
-                children: chatHistory
-                    .map((msg) => ListTile(
-                          title: Text(msg["text"]),
-                          subtitle: Text(msg["role"]),
-                        ))
-                    .toList(),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // 🔥 LONG PRESS = RESET CHAT
-  void resetChat() {
-    setState(() {
-      chatHistory.clear();
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Historique chat réinitialisé")),
-    );
   }
 
   @override
@@ -224,48 +735,27 @@ class _BookImagesPageState extends State<BookImagesPage> {
         iconTheme: const IconThemeData(
             color: Colors.white), // 🔥 pour icônes back + autres
         actions: [
-          GestureDetector(
-            onTap: openChatModal,
-            onLongPress: resetChat,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12),
-                  child: Icon(Icons.smart_toy, size: 26, color: Colors.white),
-                ),
-                if (isLoadingChat)
-                  const Positioned(
-                    right: 6,
-                    top: 6,
-                    child: SizedBox(
-                      width: 10,
-                      height: 10,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  ),
-              ],
-            ),
+          // 🔥 MENU
+          IconButton(
+            icon: const Icon(Icons.more_vert),
+            onPressed: openActionMenu,
+          ),
+
+          // 🔥 CHATBOT
+          IconButton(
+            icon: const Icon(Icons.smart_toy),
+            onPressed: openChatModal,
           ),
         ],
       ),
       body: FutureBuilder<List<BookPageImage>>(
         future: futureImages,
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+          if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (snapshot.hasError) {
-            return Center(child: Text('Erreur : ${snapshot.error}'));
-          }
-
-          final images = snapshot.data ?? [];
-
-          if (images.isEmpty) {
-            return const Center(child: Text("Aucune page trouvée"));
-          }
-
+          final images = snapshot.data!;
           final currentImage = images[currentIndex];
 
           return Column(
@@ -273,8 +763,6 @@ class _BookImagesPageState extends State<BookImagesPage> {
               Expanded(
                 child: PhotoView(
                   imageProvider: NetworkImage(currentImage.urlImage),
-                  backgroundDecoration:
-                      const BoxDecoration(color: Colors.white),
                 ),
               ),
               Row(
@@ -284,7 +772,7 @@ class _BookImagesPageState extends State<BookImagesPage> {
                     onPressed: currentIndex > 0 ? prevImage : null,
                     child: const Text("Précédent"),
                   ),
-                  Text('Page ${currentIndex + 1} / ${images.length}'),
+                  Text('${currentIndex + 1}/${images.length}'),
                   ElevatedButton(
                     onPressed: currentIndex < images.length - 1
                         ? () => nextImage(images.length - 1)
@@ -292,7 +780,7 @@ class _BookImagesPageState extends State<BookImagesPage> {
                     child: const Text("Suivant"),
                   ),
                 ],
-              ),
+              )
             ],
           );
         },
@@ -300,3 +788,296 @@ class _BookImagesPageState extends State<BookImagesPage> {
     );
   }
 }
+
+/*
+Ton code est déjà **très solide (lecture + tracking + chatbot multi-LLM)** 👏
+Mais vu ton niveau (API + IA + architecture), tu peux clairement passer à une **version “next-gen” type Kindle + ChatGPT + Notion**.
+
+Je te propose des évolutions **classées par impact (🔥 = game changer)** :
+
+---
+
+# 🔥 1. Chat IA contextuel (RAG sur le livre)
+
+👉 Aujourd’hui ton chat est “généraliste”
+👉 Tu peux le rendre **intelligent sur le livre en cours**
+
+### 💡 Idée
+
+* Envoyer :
+
+  * page actuelle
+  * pages voisines
+  * historique lecture
+* Backend → embedding + vector DB
+
+### 🚀 Résultat
+
+* “Explique cette page”
+* “Résume ce chapitre”
+* “Donne les points clés”
+
+### Exemple payload :
+
+```json
+{
+  "text": "Explique cette page",
+  "model": "gpt4",
+  "context": {
+    "page": currentPageText,
+    "previous_pages": [...],
+    "book_id": livreId
+  }
+}
+```
+
+👉 Tu transformes ton app en **assistant pédagogique intelligent**
+
+---
+
+# 🔥 2. Mode “Lecture intelligente”
+
+Ajoute une **couche UX avancée type Kindle**
+
+### Features :
+
+* 📌 Highlight texte (si OCR)
+* 🧠 Résumé auto par page
+* 🔖 Bookmark pages
+* 📊 Progression de lecture
+
+### UI :
+
+* double tap → ajouter note
+* swipe up → résumé IA
+
+---
+
+# 🔥 3. OCR + compréhension des images
+
+👉 Très puissant pour livres scannés
+
+### Stack :
+
+* API OCR (Google Vision / Tesseract)
+* Stocker texte dans DB
+
+### Résultat :
+
+* recherche dans le livre 🔍
+* chat basé sur contenu réel
+* traduction automatique
+
+---
+
+# 🔥 4. Recherche globale dans le livre
+
+Ajoute :
+
+```dart
+TextField → search
+```
+
+Backend :
+
+* index texte (Elastic / Mongo text index)
+
+### UX :
+
+* “chercher un mot”
+* jump vers page
+
+---
+
+# 🔥 5. Mode audio (Text-to-Speech)
+
+👉 Ultra utile (accessibilité + multitâche)
+
+### Features :
+
+* lecture vocale de page
+* vitesse configurable
+* voice AI (OpenAI / ElevenLabs)
+
+---
+
+# 🔥 6. Système de recommandation IA
+
+👉 Tu es déjà expert ML → exploite ça
+
+### Inputs :
+
+* historique lecture
+* pages vues
+* temps passé
+
+### Output :
+
+* livres similaires
+* pages importantes
+
+---
+
+# 🔥 7. Analytics avancé utilisateur
+
+Tu track déjà → pousse plus loin :
+
+### Metrics :
+
+* temps par page
+* heatmap lecture
+* abandon rate
+
+### Bonus :
+
+* dashboard admin (Angular que tu veux déjà)
+
+---
+
+# 🔥 8. Offline mode (très important)
+
+👉 Ton app dépend trop du réseau
+
+### Solution :
+
+* cache images (Hive / SQLite)
+* sync différé
+
+---
+
+# 🔥 9. Multi-agent IA (niveau expert 🔥🔥🔥)
+
+Vu que tu fais du LangChain 👇
+
+### Agents :
+
+1. 📚 Agent résumé
+2. 🧑‍🏫 Agent pédagogue
+3. ❓ Agent Q&A
+4. 📊 Agent quiz
+
+### Exemple :
+
+```json
+{
+  "agent": "teacher",
+  "task": "explique comme un prof",
+  "level": "college"
+}
+```
+
+---
+
+# 🔥 10. Génération automatique de quiz
+
+👉 énorme valeur éducative
+
+### Exemple :
+
+* QCM depuis page
+* correction auto
+* score utilisateur
+
+---
+
+# 🔥 11. Synchronisation multi-device
+
+* mobile ↔ web ↔ tablette
+* reprendre lecture instantanément
+
+---
+
+# 🔥 12. Mode social
+
+👉 transforme ton app en plateforme
+
+* partager notes
+* voir annotations publiques
+* leaderboard lecture
+
+---
+
+# 🔥 13. UX premium (simple mais impact énorme)
+
+* dark mode 🌙
+* swipe horizontal (comme Kindle)
+* animation page flip
+* preload images
+
+---
+
+# 🔥 14. Streaming réponse IA (comme ChatGPT)
+
+👉 au lieu d’attendre la réponse complète
+
+### Backend :
+
+* SSE / WebSocket
+
+### UX :
+
+* texte qui s’affiche en live
+
+---
+
+# 🔥 15. Sécurité & performance
+
+Vu ton architecture :
+
+### Ajoute :
+
+* refresh token
+* retry automatique API
+* cache LLM responses (Redis 🔥)
+
+---
+
+# 💎 Bonus ultra avancé (niveau startup)
+
+👉 “Copilot de lecture”
+
+* détecte si user bloque
+* propose explication automatiquement
+* adapte niveau (collège / lycée / expert)
+
+---
+
+# 🧠 Architecture idéale (ton cas)
+
+Vu ton profil, je recommande :
+
+```
+Flutter App
+   ↓
+Node.js API Gateway
+   ↓
+Python (IA microservices)
+   ↓
+Vector DB (Pinecone / Weaviate)
+   ↓
+LLM (GPT / Gemini / Ollama)
+```
+
+---
+
+# ⚡ Ce que je te recommande PRIORITAIREMENT
+
+Si tu veux un impact rapide :
+
+1. 🔥 RAG sur livre (chat intelligent)
+2. 🔥 OCR + search
+3. 🔥 quiz auto
+4. 🔥 streaming IA
+
+---
+
+Si tu veux, je peux te faire :
+
+* 🧠 architecture complète LangChain pour ton app
+* ⚙️ code backend RAG (Node + Python)
+* 📱 refactor Flutter propre (clean architecture)
+* 🚀 version “startup ready”
+
+Dis-moi 👍
+
+*/
