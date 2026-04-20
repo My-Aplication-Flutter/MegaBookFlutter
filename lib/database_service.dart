@@ -3,6 +3,7 @@ import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'dart:io';
+import "./Models/FavorisModel.dart";
 
 class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
@@ -152,6 +153,31 @@ class DatabaseService {
       limit: 1,
     );
     return result.isNotEmpty;
+  }
+
+  Future<List<FavoriteItem>> getAllFavorites() async {
+    final livres = await getFavoritesLivre();
+    final magazines = await getFavoritesCycleMagazines();
+
+    final bookItems = livres.map((m) => FavoriteItem(
+          id: m['id'],
+          title: m['titre'],
+          subtitle: "${m['auteur']} • ${m['year']}",
+          image: m['cover'],
+          type: "book",
+          pages: m['nbrPages'],
+        ));
+
+    final magazineItems = magazines.map((m) => FavoriteItem(
+          id: m['id'],
+          title: m['titre'],
+          subtitle: m['periode'],
+          image: m['cover'],
+          type: "magazine",
+          pages: m['nbrPages'],
+        ));
+
+    return [...bookItems, ...magazineItems];
   }
 
   /************************************************************* */

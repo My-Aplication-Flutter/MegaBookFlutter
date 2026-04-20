@@ -11,6 +11,7 @@ import 'pageLivre.dart';
 import '../../database_service.dart';
 import '../../menu.dart'; // Adapté à ton projet
 import '../../Models/pageLivre.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class BooksByThemePage extends StatefulWidget {
   final String theme;
@@ -27,15 +28,279 @@ class _BooksByThemePageState extends State<BooksByThemePage> {
   late Future<List<BookPageImage>> futureImages;
   double _downloadProgress = 0.0;
 
+  List<Book> books = [];
+  List<Book> booksTemp = [];
+
+  List<String> selectedYears = [];
+  List<String> selectedLangues = [];
+  List<String> selectedAuthors = [];
+
+  String get filterKey => "filters_livres_${widget.theme}";
+
   // Ajouter un set pour garder en mémoire les favoris chargés depuis la BD
   Set<String> favoriteIds = {};
+
+  ScrollController _miniSliderController = ScrollController();
+  int currentIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    futureBooks = fetchBooks(widget.theme);
+    futureBooks = fetchBooks(widget.theme).then((data) {
+      books = data;
+      booksTemp = data;
+      loadFilters(); // 🔥 charger filtres
+      return data;
+    });
+    // futureBooks = fetchBooks(widget.theme);
     loadFavorites();
   }
+
+  Future<void> loadFilters() async {
+    final prefs = await SharedPreferences.getInstance();
+    final data = prefs.getString(filterKey);
+
+    if (data == null) return;
+
+    final decoded = jsonDecode(data);
+
+    selectedAuthors = List<String>.from(decoded['authors'] ?? []);
+    selectedYears = List<String>.from(decoded['years'] ?? []);
+    selectedLangues = List<String>.from(decoded['langues'] ?? []);
+
+    applyFilter(
+      authors: selectedAuthors,
+      years: selectedYears,
+      langues: selectedLangues,
+    );
+  }
+
+  Future<void> resetFilters() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(filterKey);
+
+    setState(() {
+      books = booksTemp;
+      selectedAuthors = [];
+      selectedYears = [];
+      selectedLangues = [];
+    });
+  }
+
+  Future<void> saveFilters({
+    required List<String> authors,
+    required List<String> years,
+    required List<String> langues,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final data = {
+      "authors": authors,
+      "years": years,
+      "langues": langues,
+    };
+
+    await prefs.setString(filterKey, jsonEncode(data));
+  }
+
+  void openFilterModal() {
+    List<String> tempYears = List.from(selectedYears);
+    List<String> tempAuthors = List.from(selectedAuthors);
+    List<String> tempLangues = List.from(selectedLangues);
+
+    final allYears = booksTemp.map((e) => e.year.toString()).toSet().toList();
+
+    final allAuthors = booksTemp.map((e) => e.auteur).toSet().toList();
+
+    final allLangues = booksTemp.map((e) => e.langue).toSet().toList();
+
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateModal) {
+            return Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text("🎯 Filtrer les livres",
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+
+                  const SizedBox(height: 20),
+
+                  /// Langues
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text("Langue",
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+
+                  Wrap(
+                    spacing: 8,
+                    children: allLangues.map((langue) {
+                      return FilterChip(
+                        label: Text(langue),
+                        selected: tempLangues.contains(langue),
+                        onSelected: (val) {
+                          setStateModal(() {
+                            if (val) {
+                              tempLangues.add(langue);
+                            } else {
+                              tempLangues.remove(langue);
+                            }
+                          });
+                        },
+                      );
+                    }).toList(),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  /// YEARS
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text("Année",
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+
+                  Wrap(
+                    spacing: 8,
+                    children: allYears.map((year) {
+                      return FilterChip(
+                        label: Text(year),
+                        selected: tempYears.contains(year),
+                        onSelected: (val) {
+                          setStateModal(() {
+                            if (val) {
+                              tempYears.add(year);
+                            } else {
+                              tempYears.remove(year);
+                            }
+                          });
+                        },
+                      );
+                    }).toList(),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  /// AUTHORS
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text("Auteur",
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+
+                  Wrap(
+                    spacing: 8,
+                    children: allAuthors.map((author) {
+                      return FilterChip(
+                        label: Text(author),
+                        selected: tempAuthors.contains(author),
+                        onSelected: (val) {
+                          setStateModal(() {
+                            if (val) {
+                              tempAuthors.add(author);
+                            } else {
+                              tempAuthors.remove(author);
+                            }
+                          });
+                        },
+                      );
+                    }).toList(),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            setState(() {
+                              books = booksTemp;
+                              selectedYears = [];
+                              selectedAuthors = [];
+                              selectedLangues = [];
+                            });
+                            Navigator.pop(context);
+                          },
+                          child: const Text("Reset"),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            selectedYears = tempYears;
+                            selectedAuthors = tempAuthors;
+                            selectedLangues = tempLangues;
+
+                            applyFilter(
+                              years: selectedYears,
+                              authors: selectedAuthors,
+                              langues: selectedLangues,
+                            );
+
+                            Navigator.pop(context);
+                          },
+                          child: const Text("Appliquer"),
+                        ),
+                      ),
+                    ],
+                  )
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void applyFilter({
+    required List<String> years,
+    required List<String> authors,
+    required List<String> langues,
+  }) {
+    List<Book> filtered = booksTemp;
+
+    ////////////////////////////////////////////////////////////
+    /// YEAR
+    ////////////////////////////////////////////////////////////
+    if (years.isNotEmpty) {
+      filtered = filtered.where((b) {
+        return years.contains(b.year.toString());
+      }).toList();
+    }
+
+    ////////////////////////////////////////////////////////////
+    /// AUTHOR
+    ////////////////////////////////////////////////////////////
+    if (authors.isNotEmpty) {
+      filtered = filtered.where((b) {
+        return authors.contains(b.auteur);
+      }).toList();
+    }
+
+    ////////////////////////////////////////////////////////////
+    /// Langue
+    ////////////////////////////////////////////////////////////
+    if (langues.isNotEmpty) {
+      filtered = filtered.where((b) {
+        return langues.contains(b.langue);
+      }).toList();
+    }
+
+    setState(() {
+      books = filtered;
+      futureBooks = Future.value(filtered); // ✅ IMPORTANT
+    });
+  }
+
+  ////////////////////////////////////////////////////////////
 
   void loadFavorites() async {
     final favs = await dbService.getFavoritesLivre();
@@ -345,6 +610,12 @@ class _BooksByThemePageState extends State<BooksByThemePage> {
             bottom: Radius.circular(20),
           ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.filter_list),
+            onPressed: openFilterModal,
+          ),
+        ],
       ),
       // drawer: const SideMenu(),
       body: Container(

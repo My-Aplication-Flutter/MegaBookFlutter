@@ -8,7 +8,7 @@
     
 
     <application
-        android:label="megabook"
+        android:label="MegaBooks"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:requestLegacyExternalStorage="true">

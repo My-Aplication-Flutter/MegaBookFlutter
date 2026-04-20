@@ -74,6 +74,11 @@ class _BookImagesPageState extends State<BookImagesPage> {
   String translatedText = "";
   bool isProcessingOCR = false;
 
+  final ScrollController _miniSliderController = ScrollController();
+  final PageController _pageController = PageController();
+
+  bool showMiniSlider = true;
+
   @override
   void initState() {
     storageKey = "chat_${widget.livreId}";
@@ -249,96 +254,179 @@ class _BookImagesPageState extends State<BookImagesPage> {
   }
 
   void openChatModal() {
+    final FocusNode inputFocusNode = FocusNode();
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Colors.transparent, // 🔥 important
       builder: (_) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            return SizedBox(
-              height: MediaQuery.of(context).size.height * 0.75,
-              child: Column(
-                children: [
-                  // HEADER
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const SizedBox(width: 10),
-                      const Text("Assistant IA"),
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () async {
-                          await clearChatHistory();
-                          setModalState(() {});
-                        },
-                      )
-                    ],
-                  ),
+            final viewInsets = MediaQuery.of(context).viewInsets;
 
-                  // MODELS
-                  isLoadingModels
-                      ? const CircularProgressIndicator()
-                      : DropdownButton<String>(
-                          value: selectedModel,
-                          items: models
-                              .map((m) =>
-                                  DropdownMenuItem(value: m, child: Text(m)))
-                              .toList(),
-                          onChanged: (v) =>
-                              setModalState(() => selectedModel = v),
-                        ),
-
-                  // CHAT
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: chatMessages.length + (isLoadingChat ? 1 : 0),
-                      itemBuilder: (_, i) {
-                        if (i == chatMessages.length && isLoadingChat) {
-                          return const ListTile(
-                            title: Text("Assistant réfléchit..."),
-                            trailing: CircularProgressIndicator(),
-                          );
-                        }
-
-                        final msg = chatMessages[i];
-                        final isUser = msg["role"] == "user";
-
-                        return Align(
-                          alignment: isUser
-                              ? Alignment.centerRight
-                              : Alignment.centerLeft,
-                          child: Container(
-                            margin: const EdgeInsets.all(6),
-                            padding: const EdgeInsets.all(10),
-                            color:
-                                isUser ? Colors.deepPurple : Colors.grey[300],
-                            child: Text(msg["content"] ?? ""),
-                          ),
-                        );
-                      },
+            return AnimatedPadding(
+              duration: const Duration(milliseconds: 200),
+              padding: viewInsets, // 🔥 remonte avec clavier
+              child: Container(
+                height: MediaQuery.of(context).size.height * 0.75,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+                ),
+                child: Column(
+                  children: [
+                    ////////////////////////////////////////////////////////////
+                    /// HEADER
+                    ////////////////////////////////////////////////////////////
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const SizedBox(width: 10),
+                        const Text("Assistant IA"),
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () async {
+                            await clearChatHistory();
+                            setModalState(() {});
+                          },
+                        )
+                      ],
                     ),
-                  ),
 
-                  // INPUT
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(controller: chatController),
+                    ////////////////////////////////////////////////////////////
+                    /// MODELS
+                    ////////////////////////////////////////////////////////////
+                    isLoadingModels
+                        ? const CircularProgressIndicator()
+                        : DropdownButton<String>(
+                            value: selectedModel,
+                            items: models
+                                .map((m) =>
+                                    DropdownMenuItem(value: m, child: Text(m)))
+                                .toList(),
+                            onChanged: (v) =>
+                                setModalState(() => selectedModel = v),
+                          ),
+
+                    ////////////////////////////////////////////////////////////
+                    /// CHAT
+                    ////////////////////////////////////////////////////////////
+                    Expanded(
+                      child: ListView.builder(
+                        reverse: true, // 🔥 style chat moderne
+                        itemCount:
+                            chatMessages.length + (isLoadingChat ? 1 : 0),
+                        itemBuilder: (_, i) {
+                          if (i == chatMessages.length && isLoadingChat) {
+                            return const ListTile(
+                              title: Text("Assistant réfléchit..."),
+                              trailing: CircularProgressIndicator(),
+                            );
+                          }
+
+                          final msg = chatMessages[i];
+                          final isUser = msg["role"] == "user";
+
+                          return Align(
+                            alignment: isUser
+                                ? Alignment.centerRight
+                                : Alignment.centerLeft,
+                            child: Container(
+                              margin: const EdgeInsets.all(6),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: isUser
+                                    ? Colors.deepPurple
+                                    : Colors.grey[200],
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Text(
+                                msg["content"] ?? "",
+                                style: TextStyle(
+                                  color: isUser ? Colors.white : Colors.black87,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
                       ),
-                      IconButton(
-                        icon: isLoadingChat
-                            ? const CircularProgressIndicator()
-                            : const Icon(Icons.send),
-                        onPressed: isLoadingChat
-                            ? null
-                            : () async {
-                                await sendMessageToChat();
-                                setModalState(() {});
-                              },
-                      )
-                    ],
-                  )
-                ],
+                    ),
+
+                    ////////////////////////////////////////////////////////////
+                    /// INPUT STYLE CHATGPT 🔥
+                    ////////////////////////////////////////////////////////////
+                    SafeArea(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border(
+                            top: BorderSide(color: Colors.grey.shade300),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            ////////////////////////////////////////////////////
+                            /// TEXTFIELD STYLÉ
+                            ////////////////////////////////////////////////////
+                            Expanded(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(25),
+                                  border: Border.all(
+                                    color: inputFocusNode.hasFocus
+                                        ? Colors.deepPurple
+                                        : Colors.grey.shade400,
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: TextField(
+                                  controller: chatController,
+                                  focusNode: inputFocusNode,
+                                  maxLines: null, // 🔥 auto expand
+                                  onTap: () {
+                                    setModalState(() {}); // refresh border
+                                  },
+                                  decoration: const InputDecoration(
+                                    hintText: "Pose ta question...",
+                                    contentPadding: EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 12),
+                                    border: InputBorder.none,
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(width: 8),
+
+                            ////////////////////////////////////////////////////
+                            /// SEND BUTTON
+                            ////////////////////////////////////////////////////
+                            IconButton(
+                              icon: isLoadingChat
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2),
+                                    )
+                                  : const Icon(Icons.send,
+                                      color: Colors.deepPurple),
+                              onPressed: isLoadingChat
+                                  ? null
+                                  : () async {
+                                      await sendMessageToChat();
+                                      setModalState(() {});
+                                    },
+                            )
+                          ],
+                        ),
+                      ),
+                    )
+                  ],
+                ),
               ),
             );
           },
@@ -720,6 +808,91 @@ class _BookImagesPageState extends State<BookImagesPage> {
     });
   }
 
+  void goToPage(int index) {
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeInOut,
+    );
+
+    _miniSliderController.animateTo(
+      (index * 64.0) - (MediaQuery.of(context).size.width / 2) + 32,
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  Widget buildLinearSlider(List<BookPageImage> pages) {
+    return Positioned(
+      bottom: 0,
+      left: 0,
+      right: 0,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.7),
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(16),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ////////////////////////////////////////////////////////////
+            /// 🔢 TEXTE PAGE
+            ////////////////////////////////////////////////////////////
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Page ${currentIndex + 1}",
+                  style: const TextStyle(color: Colors.white),
+                ),
+                Text(
+                  "${pages.length}",
+                  style: const TextStyle(color: Colors.white70),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 6),
+
+            ////////////////////////////////////////////////////////////
+            /// 🎯 SLIDER PRINCIPAL
+            ////////////////////////////////////////////////////////////
+            SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                trackHeight: 4,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+                overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                activeTrackColor: Colors.deepPurple,
+                inactiveTrackColor: Colors.white24,
+                thumbColor: Colors.white,
+              ),
+              child: Slider(
+                value: currentIndex.toDouble(),
+                min: 0,
+                max: (pages.length - 1).toDouble(),
+                divisions: pages.length - 1,
+                onChanged: (value) {
+                  setState(() {
+                    currentIndex = value.toInt();
+                  });
+                },
+                onChangeEnd: (value) {
+                  goToPage(value.toInt()); // 🔥 garde ta logique
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  ////////////////////////////////////////////////////////////
+  /// UI
+  ////////////////////////////////////////////////////////////
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -732,22 +905,31 @@ class _BookImagesPageState extends State<BookImagesPage> {
           ),
         ),
         backgroundColor: Colors.deepPurple,
-        iconTheme: const IconThemeData(
-            color: Colors.white), // 🔥 pour icônes back + autres
+        iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           // 🔥 MENU
           IconButton(
             icon: const Icon(Icons.more_vert),
             onPressed: openActionMenu,
           ),
-
-          // 🔥 CHATBOT
           IconButton(
             icon: const Icon(Icons.smart_toy),
-            onPressed: openChatModal,
+            onPressed: openChatModal, // ton chatbot
           ),
+          IconButton(
+              icon:
+                  Icon(showMiniSlider ? Icons.expand_less : Icons.expand_more),
+              onPressed: () {
+                setState(() {
+                  showMiniSlider = !showMiniSlider;
+                });
+              }),
         ],
       ),
+
+      ////////////////////////////////////////////////////////////
+      /// BODY
+      ////////////////////////////////////////////////////////////
       body: FutureBuilder<List<BookPageImage>>(
         future: futureImages,
         builder: (context, snapshot) {
@@ -758,29 +940,43 @@ class _BookImagesPageState extends State<BookImagesPage> {
           final images = snapshot.data!;
           final currentImage = images[currentIndex];
 
-          return Column(
+          return Stack(
             children: [
-              Expanded(
-                child: PhotoView(
-                  imageProvider: NetworkImage(currentImage.urlImage),
-                ),
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              /// CONTENU PRINCIPAL
+              Column(
                 children: [
-                  ElevatedButton(
-                    onPressed: currentIndex > 0 ? prevImage : null,
-                    child: const Text("Précédent"),
+                  Expanded(
+                    child: PhotoView(
+                      imageProvider: NetworkImage(currentImage.urlImage),
+                    ),
                   ),
-                  Text('${currentIndex + 1}/${images.length}'),
-                  ElevatedButton(
-                    onPressed: currentIndex < images.length - 1
-                        ? () => nextImage(images.length - 1)
-                        : null,
-                    child: const Text("Suivant"),
+
+                  /// NAVIGATION
+                  Container(
+                    color: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        ElevatedButton(
+                          onPressed: currentIndex > 0 ? prevImage : null,
+                          child: const Text("Précédent"),
+                        ),
+                        Text('${currentIndex + 1}/${images.length}'),
+                        ElevatedButton(
+                          onPressed: currentIndex < images.length - 1
+                              ? () => nextImage(images.length - 1)
+                              : null,
+                          child: const Text("Suivant"),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
-              )
+              ),
+
+              /// 🔥 MINI SLIDER
+              if (showMiniSlider) buildLinearSlider(images),
             ],
           );
         },

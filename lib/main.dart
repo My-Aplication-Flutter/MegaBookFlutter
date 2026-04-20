@@ -5,6 +5,7 @@ import 'Screens/Magazines/Magazines.dart';
 import 'Screens/FavoritesLivres.dart'; // importe ta page favoris
 import 'Screens/FavoritesMagazines.dart'; // importe ta page favoris
 import 'Screens/LoginPage.dart'; // importe ta page login
+import 'Screens/Magazines/OfflineLibraryPage.dart';
 
 void main() => runApp(const MyApp());
 
@@ -28,6 +29,7 @@ class MyApp extends StatelessWidget {
         '/Magazines': (context) => const Magazines(),
         '/FavorisLivres': (context) => const FavoritesLivresPage(),
         '/FavorisMagazines': (context) => const FavoritesMagazinesPage(),
+        '/MagazinesHorsLigne': (context) => const OfflineLibraryPage(),
         // '/settings': (context) => const SettingsPage(),
       },
       // Si tu utilises 'home', inutile de mettre initialRoute et routes,

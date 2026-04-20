@@ -19,4 +19,14 @@ class CycleMagazinePageImage {
       numPage: json["numPage"] ?? 0,
     );
   }
+
+  /// ✅ AJOUT ICI
+  Map<String, dynamic> toJson() {
+    return {
+      "_id": id,
+      "title": titre,
+      "url": urlImage,
+      "numPage": numPage,
+    };
+  }
 }
